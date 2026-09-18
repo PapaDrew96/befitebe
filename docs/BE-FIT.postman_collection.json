@@ -1,0 +1,443 @@
+{
+  "info": {
+    "name": "BE-FIT API v3",
+    "description": "Development collection for the BE-FIT Training Center V2 backend.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://befitapi.test:8082/api/v1"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "session_id",
+      "value": "1"
+    },
+    {
+      "key": "booking_id",
+      "value": "1"
+    },
+    {
+      "key": "user_id",
+      "value": "1"
+    },
+    {
+      "key": "waitlist_id",
+      "value": "1"
+    },
+    {
+      "key": "reset_token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/health"
+      }
+    },
+    {
+      "name": "Login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const json = pm.response.json();",
+              "if (json.success && json.data && json.data.token) pm.collectionVariables.set('token', json.data.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login\": \"owner@example.com\",\n  \"password\": \"ChangeMe123!\"\n}"
+        },
+        "url": "{{base_url}}/auth/login"
+      }
+    },
+    {
+      "name": "Me",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{base_url}}/auth/me"
+      }
+    },
+    {
+      "name": "Weekly Schedule",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{base_url}}/schedule/week"
+      }
+    },
+    {
+      "name": "My Bookings",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{base_url}}/bookings"
+      }
+    },
+    {
+      "name": "Create Booking",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"session_id\": {{session_id}}\n}"
+        },
+        "url": "{{base_url}}/bookings"
+      }
+    },
+    {
+      "name": "Admin Dashboard",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{base_url}}/admin/dashboard"
+      }
+    },
+    {
+      "name": "Admin Users",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{base_url}}/admin/users"
+      }
+    },
+    {
+      "name": "Admin Templates",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{base_url}}/admin/schedule/templates"
+      }
+    },
+    {
+      "name": "Admin Bookings",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{base_url}}/admin/bookings"
+      }
+    },
+    {
+      "name": "Announcements",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{base_url}}/announcements"
+      }
+    },
+    {
+      "name": "Forgot Password",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const j=pm.response.json();",
+              "if(j.data && j.data.dev_reset_token) pm.collectionVariables.set('reset_token', j.data.dev_reset_token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/auth/forgot-password",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"login\": \"member@befit.test\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Reset Password",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/auth/reset-password",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"token\": \"{{reset_token}}\",\n  \"password\": \"Member123!\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Join Waitlist",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const j=pm.response.json();",
+              "if(j.data && j.data.id) pm.collectionVariables.set('waitlist_id', j.data.id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/waitlist",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"session_id\": 1\n}"
+        }
+      }
+    },
+    {
+      "name": "Leave Waitlist",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/waitlist/{{waitlist_id}}"
+      }
+    },
+    {
+      "name": "Notifications",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/notifications"
+      }
+    },
+    {
+      "name": "Mark Notifications Read",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/notifications/read-all",
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        }
+      }
+    },
+    {
+      "name": "Admin Waiting List",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/admin/waitlist?from=2026-08-01&to=2026-09-30&status=waiting"
+      }
+    },
+    {
+      "name": "Mark Attendance",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/admin/bookings/{{booking_id}}/attendance",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"checked_in\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Attendance Report",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/admin/reports/attendance?from=2026-08-01&to=2026-08-31"
+      }
+    },
+    {
+      "name": "Admin Settings",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "url": "{{base_url}}/admin/settings"
+      }
+    },
+    {
+      "name": "My Payments",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{base_url}}/payments"
+      }
+    },
+    {
+      "name": "Admin Member Payments",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{base_url}}/admin/users/2/payments"
+      }
+    },
+    {
+      "name": "Admin Record Payment",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"payment_date\": \"2026-09-18\",\n  \"valid_until\": \"2026-10-18\"\n}"
+        },
+        "url": "{{base_url}}/admin/users/2/payments"
+      }
+    }
+  ]
+}

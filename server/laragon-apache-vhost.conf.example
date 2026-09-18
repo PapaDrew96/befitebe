@@ -1,0 +1,13 @@
+<VirtualHost *:80>
+    ServerName befit-api.test
+    DocumentRoot "C:/laragon/www/befit-api/public"
+
+    <Directory "C:/laragon/www/befit-api/public">
+        AllowOverride All
+        Require all granted
+        Options -Indexes +FollowSymLinks
+    </Directory>
+
+    ErrorLog "C:/laragon/logs/befit-api-error.log"
+    CustomLog "C:/laragon/logs/befit-api-access.log" common
+</VirtualHost>

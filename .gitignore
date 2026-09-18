@@ -1,0 +1,13 @@
+/vendor/
+/.env
+/.env.local
+/.env.example
+/storage/logs/*.log
+/storage/cache/*
+/storage/backups/*
+/database/backups/
+*.sql.gz
+!.gitkeep
+
+.DS_Store
+Thumbs.db

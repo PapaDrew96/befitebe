@@ -12,10 +12,11 @@ use Befit\Repository\SettingRepository;
 final class SettingsService
 {
     private const ALLOWED = [
-        'gym_name', 'default_capacity', 'show_attendee_names',
-        'booking_days_ahead', 'booking_cutoff_minutes', 'cancellation_cutoff_minutes',
-        'waitlist_enabled', 'auto_promote_waitlist'
-    ];
+    'gym_name', 'default_capacity', 'show_attendee_names',
+    'booking_days_ahead', 'booking_cutoff_minutes', 'cancellation_cutoff_minutes',
+    'waitlist_enabled', 'auto_promote_waitlist',
+    'payment_reminder_days_before_expiry'
+];
 
     public function __construct(
         private readonly Database $database,
@@ -35,6 +36,7 @@ final class SettingsService
             'cancellation_cutoff_minutes' => (int)($v['cancellation_cutoff_minutes'] ?? 120),
             'waitlist_enabled' => $this->bool($v['waitlist_enabled'] ?? '1'),
             'auto_promote_waitlist' => $this->bool($v['auto_promote_waitlist'] ?? '1'),
+			'payment_reminder_days_before_expiry' => (int)($v['payment_reminder_days_before_expiry'] ?? 5),
         ];
     }
 
@@ -53,6 +55,7 @@ final class SettingsService
             'booking_days_ahead'=>[0,365],
             'booking_cutoff_minutes'=>[0,10080],
             'cancellation_cutoff_minutes'=>[0,10080],
+			'payment_reminder_days_before_expiry'=>[0,365],
         ];
         foreach($intRules as $key=>[$min,$max]){
             if(!array_key_exists($key,$input))continue;

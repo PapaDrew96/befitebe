@@ -27,9 +27,7 @@ final class PasswordResetService
         private readonly bool $debug,
         private readonly string $resetBaseUrl,
         private readonly int $ttlMinutes,
-        private readonly bool $mailEnabled,
-        private readonly string $mailFrom,
-        private readonly string $mailFromName,
+        private readonly MailService $mail,
         string $timezone
     ) {
         $this->timezone = new DateTimeZone($timezone);
@@ -56,9 +54,10 @@ final class PasswordResetService
         });
 
         $resetUrl = rtrim($this->resetBaseUrl, '/') . '/#/reset-password?token=' . rawurlencode($raw);
-        if ($this->mailEnabled && !empty($user['email'])) {
-            $subject = 'BE-FIT password reset';
-            $message = "A password reset was requested for your BE-FIT account.
+        if (!empty($user['email'])) {
+    $subject = 'BE-FIT password reset';
+
+    $message = "A password reset was requested for your BE-FIT account.
 
 Open this link to reset your password:
 {$resetUrl}
@@ -66,12 +65,13 @@ Open this link to reset your password:
 This link expires in {$this->ttlMinutes} minutes.
 
 If you did not request this, ignore this message.";
-            $headers = [
-                'From: ' . $this->mailFromName . ' <' . $this->mailFrom . '>',
-                'Content-Type: text/plain; charset=UTF-8',
-            ];
-            @mail((string)$user['email'], $subject, $message, implode("\r\n", $headers));
-        }
+
+    $this->mail->sendText(
+        (string)$user['email'],
+        $subject,
+        $message
+    );
+}
 
         if (!$this->debug) {
             return [];

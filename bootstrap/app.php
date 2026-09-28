@@ -54,6 +54,7 @@ use Monolog\Handler\StreamHandler;
 use Monolog\Level;
 use Monolog\Logger;
 use Slim\Factory\AppFactory;
+use Befit\Service\MailService;
 
 $root = dirname(__DIR__);
 
@@ -154,6 +155,16 @@ $settingsService = new SettingsService(
     $activityRepository
 );
 $notificationService = new NotificationService($notificationRepository);
+$mailService = new MailService(
+    $config['mail']['enabled'],
+    $config['mail']['host'],
+    $config['mail']['port'],
+    $config['mail']['encryption'],
+    $config['mail']['username'],
+    $config['mail']['password'],
+    $config['mail']['from'],
+    $config['mail']['from_name']
+);
 $passwordResetService = new PasswordResetService(
     $database,
     $userRepository,
@@ -163,9 +174,7 @@ $passwordResetService = new PasswordResetService(
     $config['app']['debug'],
     $config['auth']['password_reset_base_url'],
     $config['auth']['password_reset_ttl_minutes'],
-    $config['mail']['enabled'],
-    $config['mail']['from'],
-    $config['mail']['from_name'],
+    $mailService,
     $config['app']['timezone']
 );
 $reportService = new ReportService($reportRepository, $config['app']['timezone']);

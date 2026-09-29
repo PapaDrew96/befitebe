@@ -4,20 +4,20 @@ declare(strict_types=1);
 
 use Befit\Controller\AdminAnnouncementController;
 use Befit\Controller\AdminBookingController;
-use Befit\Controller\AdminPaymentController;
 use Befit\Controller\AdminDashboardController;
-use Befit\Controller\AdminScheduleController;
+use Befit\Controller\AdminPaymentController;
 use Befit\Controller\AdminReportController;
+use Befit\Controller\AdminScheduleController;
 use Befit\Controller\AdminSettingsController;
 use Befit\Controller\AdminUserController;
 use Befit\Controller\AnnouncementController;
 use Befit\Controller\AuthController;
 use Befit\Controller\BookingController;
 use Befit\Controller\HealthController;
-use Befit\Controller\ProfileController;
 use Befit\Controller\NotificationController;
 use Befit\Controller\PasswordResetController;
 use Befit\Controller\PaymentController;
+use Befit\Controller\ProfileController;
 use Befit\Controller\ScheduleController;
 use Befit\Middleware\AuthenticationMiddleware;
 use Befit\Middleware\RateLimitMiddleware;
@@ -25,24 +25,60 @@ use Slim\App;
 use Slim\Routing\RouteCollectorProxy;
 
 return static function (App $app, array $c): void {
-    $app->group('/api/v1', function (RouteCollectorProxy $api) use ($c): void {
+    $rateLimit = static function (
+        string $bucket,
+        int $limit,
+        int $windowSeconds,
+        string $strategy
+    ) use ($c): RateLimitMiddleware {
+        return new RateLimitMiddleware(
+            $c['rate_limit_repository'],
+            $c['client_ip_resolver'],
+            $c['config']['security']['app_key'],
+            $bucket,
+            $limit,
+            $windowSeconds,
+            $strategy
+        );
+    };
+
+    $app->group('/api/v1', function (RouteCollectorProxy $api) use ($c, $rateLimit): void {
         $api->get('/health', [$c[HealthController::class], 'show']);
 
         $api->post('/auth/forgot-password', [$c[PasswordResetController::class], 'forgot'])
-            ->add(new RateLimitMiddleware(
-                $c['rate_limit_repository'],
-                'auth.forgot_password',
+            ->add($rateLimit(
+                'auth.forgot_password.subject',
                 $c['config']['auth']['password_reset_rate_limit_attempts'],
-                $c['config']['auth']['password_reset_rate_limit_window_seconds']
+                $c['config']['auth']['password_reset_rate_limit_window_seconds'],
+                RateLimitMiddleware::STRATEGY_SUBJECT
+            ))
+            ->add($rateLimit(
+                'auth.forgot_password.ip',
+                $c['config']['auth']['password_reset_ip_rate_limit_attempts'],
+                $c['config']['auth']['password_reset_rate_limit_window_seconds'],
+                RateLimitMiddleware::STRATEGY_IP
             ));
-        $api->post('/auth/reset-password', [$c[PasswordResetController::class], 'reset']);
+
+        $api->post('/auth/reset-password', [$c[PasswordResetController::class], 'reset'])
+            ->add($rateLimit(
+                'auth.reset_password.ip',
+                $c['config']['auth']['password_reset_ip_rate_limit_attempts'],
+                $c['config']['auth']['password_reset_rate_limit_window_seconds'],
+                RateLimitMiddleware::STRATEGY_IP
+            ));
 
         $api->post('/auth/login', [$c[AuthController::class], 'login'])
-            ->add(new RateLimitMiddleware(
-                $c['rate_limit_repository'],
-                'auth.login',
+            ->add($rateLimit(
+                'auth.login.subject',
                 $c['config']['auth']['login_rate_limit_attempts'],
-                $c['config']['auth']['login_rate_limit_window_seconds']
+                $c['config']['auth']['login_rate_limit_window_seconds'],
+                RateLimitMiddleware::STRATEGY_SUBJECT
+            ))
+            ->add($rateLimit(
+                'auth.login.ip',
+                $c['config']['auth']['login_ip_rate_limit_attempts'],
+                $c['config']['auth']['login_rate_limit_window_seconds'],
+                RateLimitMiddleware::STRATEGY_IP
             ));
 
         $api->group('', function (RouteCollectorProxy $member) use ($c): void {
@@ -67,7 +103,10 @@ return static function (App $app, array $c): void {
 
             $member->get('/announcements', [$c[AnnouncementController::class], 'index']);
             $member->get('/payments', [$c[PaymentController::class], 'index']);
-        })->add(new AuthenticationMiddleware($c['token_repository']));
+        })->add(new AuthenticationMiddleware(
+            $c['token_repository'],
+            $c['config']['auth']['token_idle_ttl_minutes']
+        ));
 
         $api->group('/admin', function (RouteCollectorProxy $admin) use ($c): void {
             $admin->get('/dashboard', [$c[AdminDashboardController::class], 'show']);
@@ -107,6 +146,10 @@ return static function (App $app, array $c): void {
 
             $admin->get('/settings', [$c[AdminSettingsController::class], 'show']);
             $admin->put('/settings', [$c[AdminSettingsController::class], 'update']);
-        })->add(new AuthenticationMiddleware($c['token_repository'], 'admin'));
+        })->add(new AuthenticationMiddleware(
+            $c['token_repository'],
+            $c['config']['auth']['token_idle_ttl_minutes'],
+            'admin'
+        ));
     });
 };

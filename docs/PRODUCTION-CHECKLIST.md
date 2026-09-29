@@ -1,67 +1,96 @@
 # BE-FIT production checklist
 
-Use this checklist before the gym starts relying on the application with real members.
+## Required security configuration
 
-## Server and application
+- Serve frontend and API only over HTTPS.
+- Backend document root must point only to `befit-backend/public`.
+- `APP_ENV=production`.
+- `APP_DEBUG=false`.
+- `APP_URL=https://api.befittraining.gr`.
+- `APP_ALLOWED_HOSTS=api.befittraining.gr`.
+- `CORS_ALLOWED_ORIGINS=https://app.befittraining.gr` and never `*`.
+- `PASSWORD_RESET_BASE_URL=https://app.befittraining.gr`.
+- Generate a unique `APP_KEY` with at least 32 characters and keep it secret.
+- Use a dedicated MySQL user limited to the BE-FIT database; never use MySQL `root`.
+- Use `LOG_LEVEL=info` or stricter in production.
+- Use encrypted SMTP (`tls`, `starttls`, `ssl` or `smtps`) when mail is enabled.
+- Keep `.env` outside the public document root and set permissions to `600` when possible.
+- Do not commit `.env`, logs or database backups.
 
-- Serve the frontend and API over HTTPS.
-- Backend Apache/Nginx document root must point only to `befit-backend/public`.
-- Set `APP_ENV=production` and `APP_DEBUG=false`.
-- Set `APP_URL` and `PASSWORD_RESET_BASE_URL` to the real HTTPS URLs.
-- Set `CORS_ALLOWED_ORIGINS` to the exact production frontend origin only.
-- Use a dedicated MySQL user with access only to the BE-FIT database; do not use `root` in production.
-- Keep `.env` outside the public document root and never commit it.
-- Ensure only `storage/logs` and the backup destination require write access.
-- Replace/remove all local test users and temporary passwords.
-- Revoke test Bearer tokens before launch.
-
-## Member privacy / GDPR-oriented product choices
-
-- Default `show_attendee_names` is **false**. Keep it disabled unless the gym explicitly decides members should see one another's names.
-- Collect only member data the gym actually needs.
-- Define who is allowed to export/use attendance history and how long it is retained.
-- Include the gym's privacy information/terms in the final public deployment if required by the client's legal/privacy process.
-
-## Password recovery and email
-
-- Password reset tokens are hashed in MySQL and expire automatically.
-- In production, reset tokens are never returned by the API when `APP_DEBUG=false`.
-- If email reset links are required, configure the server so PHP `mail()` can deliver mail and set `MAIL_ENABLED=true`.
-- Test delivery to at least Gmail and Outlook before relying on it.
-- If the production host does not provide reliable PHP mail delivery, replace native `mail()` with the client's SMTP/provider integration before launch.
-
-## Booking rules to confirm with the gym owner
-
-Review **Admin → Settings** and explicitly agree on:
-
-- booking days ahead;
-- booking cutoff minutes;
-- cancellation cutoff minutes;
-- maximum active future bookings;
-- maximum bookings per member per day;
-- waiting list enabled/disabled;
-- automatic waiting-list promotion enabled/disabled;
-- whether member names are visible.
-
-## Scheduled jobs
-
-Create a daily task for reminders if desired:
+Run:
 
 ```bash
-php bin/create-reminders.php
+/opt/plesk/php/8.3/bin/php bin/security-check.php
+composer audit --locked
 ```
 
-Create an automated nightly MySQL backup. The Windows/Laragon helper is:
+## Authentication defaults recommended for production
 
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts\backup-database.ps1
+```dotenv
+TOKEN_TTL_DAYS=7
+TOKEN_IDLE_TTL_MINUTES=1440
+TOKEN_MAX_ACTIVE_PER_USER=5
+LOGIN_RATE_LIMIT_ATTEMPTS=10
+LOGIN_IP_RATE_LIMIT_ATTEMPTS=30
+LOGIN_RATE_LIMIT_WINDOW_SECONDS=900
+PASSWORD_MIN_LENGTH=12
+PASSWORD_RESET_TTL_MINUTES=30
+PASSWORD_RESET_RATE_LIMIT_ATTEMPTS=5
+PASSWORD_RESET_IP_RATE_LIMIT_ATTEMPTS=20
+PASSWORD_RESET_RATE_LIMIT_WINDOW_SECONDS=900
 ```
 
-The helper keeps 30 days by default. Adjust its destination/retention for the production server and periodically perform a restore test.
+- Remove local test users and temporary passwords.
+- Revoke old/test Bearer tokens before launch.
+- Password changes/resets revoke all existing sessions for that user.
+
+## Server / PHP
+
+- Use PHP 8.3 through the Plesk PHP binary for CLI jobs.
+- Disable `display_errors` and `expose_php` in production PHP settings.
+- Keep OPcache enabled.
+- Keep Plesk/nginx/Apache/PHP/MariaDB patched.
+- Do not expose MySQL to the public Internet unless there is a documented need and firewall allowlisting.
+- Restrict SSH and Plesk administration by strong passwords/keys and MFA where available.
+
+## Dependencies
+
+- Deploy from `composer.lock`.
+- Use production install flags:
+
+```bash
+composer install --no-dev --prefer-dist --optimize-autoloader --classmap-authoritative
+```
+
+- Run `composer audit --locked` on every deployment and regularly thereafter.
+
+## Password recovery / email
+
+- Reset tokens are random, stored only as SHA-256 hashes and expire.
+- Reset tokens are never returned by the API when `APP_DEBUG=false`.
+- Password reset invalidates all active API sessions for the account.
+- Test SMTP delivery before relying on password recovery.
+
+## Privacy
+
+- Keep `show_attendee_names=false` unless explicitly approved by the gym.
+- Collect only required member data.
+- Define retention for activity logs, attendance records and backups.
+- Limit access to exports/reports to administrators who require it.
+
+## Scheduled security maintenance
+
+Run daily:
+
+```bash
+/opt/plesk/php/8.3/bin/php /var/www/vhosts/befittraining.gr/api.befittraining.gr/bin/security-cleanup.php
+```
+
+Continue nightly encrypted/off-host database backups and periodically perform restore tests.
 
 ## Monitoring
 
-- Check `storage/logs/app.log` after deployment and during the first week of use.
-- Confirm disk space for logs/backups.
-- Ensure the server clock/timezone is correct (`Europe/Athens` for the current setup).
-- Confirm the `/api/v1/health` endpoint returns both application and database `ok`.
+- Monitor `storage/logs/app.log` without exposing it through the web server.
+- Monitor disk space and backup completion.
+- Investigate repeated 401/403/429 responses.
+- Confirm `/api/v1/health` returns HTTP 200 without exposing internal database details.

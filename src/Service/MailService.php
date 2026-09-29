@@ -64,9 +64,7 @@ final class MailService
 
             return $mail->send();
         } catch (Exception $exception) {
-            error_log(
-                'BE-FIT mail delivery failed for ' . $to . ': ' . $exception->getMessage()
-            );
+            error_log('BE-FIT mail delivery failed: ' . $exception->getMessage());
 
             return false;
         }

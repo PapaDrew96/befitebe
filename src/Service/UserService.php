@@ -9,6 +9,8 @@ use Befit\Exception\ApiException;
 use Befit\Repository\ActivityLogRepository;
 use Befit\Repository\TokenRepository;
 use Befit\Repository\UserRepository;
+use Befit\Security\PasswordHasher;
+use Befit\Security\PasswordPolicy;
 use Befit\Support\InputValidator;
 use Befit\Support\UserPresenter;
 use PDOException;
@@ -19,7 +21,9 @@ final class UserService
         private readonly Database $database,
         private readonly UserRepository $users,
         private readonly TokenRepository $tokens,
-        private readonly ActivityLogRepository $activity
+        private readonly ActivityLogRepository $activity,
+        private readonly PasswordHasher $passwords,
+        private readonly PasswordPolicy $passwordPolicy
     ) {
     }
 
@@ -71,7 +75,7 @@ final class UserService
             ->requiredString('last_name', 1, 100)
             ->optionalEmail('email')
             ->optionalString('phone', 3, 40)
-            ->requiredString('password', 8, 255)
+            ->requiredString('password', 12, 255)
             ->oneOf('role', ['member', 'admin'])
             ->oneOf('status', ['active', 'inactive'])
             ->optionalBool('must_change_password');
@@ -79,6 +83,11 @@ final class UserService
         if (empty($input['email']) && empty($input['phone'])) {
             $validator->addError('email', 'Either email or phone is required.');
             $validator->addError('phone', 'Either phone or email is required.');
+        }
+        if (isset($input['password']) && is_string($input['password'])) {
+            foreach ($this->passwordPolicy->errors($input['password']) as $error) {
+                $validator->addError('password', $error);
+            }
         }
         $validator->throwIfInvalid();
 
@@ -88,7 +97,7 @@ final class UserService
             'last_name' => trim($input['last_name']),
             'email' => $this->nullableTrim($input['email'] ?? null),
             'phone' => $this->nullableTrim($input['phone'] ?? null),
-            'password_hash' => password_hash($input['password'], PASSWORD_DEFAULT),
+            'password_hash' => $this->passwords->hash((string) $input['password']),
             'status' => $input['status'] ?? 'active',
             'must_change_password' => array_key_exists('must_change_password', $input) ? (filter_var($input['must_change_password'], FILTER_VALIDATE_BOOL) ? 1 : 0) : 1,
         ];
@@ -132,8 +141,13 @@ final class UserService
             ->optionalString('phone', 3, 40)
             ->oneOf('role', ['member', 'admin'])
             ->oneOf('status', ['active', 'inactive'])
-            ->optionalString('password', 8, 255)
+            ->optionalString('password', 12, 255)
             ->optionalBool('must_change_password');
+        if (isset($input['password']) && $input['password'] !== '' && is_string($input['password'])) {
+            foreach ($this->passwordPolicy->errors($input['password']) as $error) {
+                $validator->addError('password', $error);
+            }
+        }
         $validator->throwIfInvalid();
 
         if (
@@ -171,7 +185,7 @@ final class UserService
                 if (isset($input['password']) && $input['password'] !== '') {
                     $this->users->updatePassword(
                         $id,
-                        password_hash($input['password'], PASSWORD_DEFAULT)
+                        $this->passwords->hash((string) $input['password'])
                     );
                     $mustChange = array_key_exists('must_change_password', $input)
                         ? filter_var($input['must_change_password'], FILTER_VALIDATE_BOOL)
@@ -275,17 +289,23 @@ final class UserService
 
     public function changePassword(int $id, array $input): void
     {
-        (new InputValidator($input))
-            ->requiredString('current_password', 8, 255)
-            ->requiredString('new_password', 8, 255)
-            ->throwIfInvalid();
+        $validator = new InputValidator($input);
+        $validator
+            ->requiredString('current_password', 1, 255)
+            ->requiredString('new_password', 12, 255);
+        if (isset($input['new_password']) && is_string($input['new_password'])) {
+            foreach ($this->passwordPolicy->errors($input['new_password']) as $error) {
+                $validator->addError('new_password', $error);
+            }
+        }
+        $validator->throwIfInvalid();
 
         $user = $this->users->findById($id);
         if (!$user) {
             throw ApiException::notFound('User not found.');
         }
 
-        if (!password_verify($input['current_password'], $user['password_hash'])) {
+        if (!$this->passwords->verify((string) $input['current_password'], (string) $user['password_hash'])) {
             throw ApiException::validation([
                 'current_password' => ['Current password is incorrect.']
             ]);
@@ -302,7 +322,7 @@ final class UserService
         $this->database->transaction(function () use ($id, $input): void {
             $this->users->updatePassword(
                 $id,
-                password_hash($input['new_password'], PASSWORD_DEFAULT)
+                $this->passwords->hash((string) $input['new_password'])
             );
             $this->users->setMustChangePassword($id, false);
             $this->tokens->deleteForUser($id);

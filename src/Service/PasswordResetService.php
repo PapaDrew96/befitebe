@@ -10,6 +10,8 @@ use Befit\Repository\ActivityLogRepository;
 use Befit\Repository\PasswordResetRepository;
 use Befit\Repository\TokenRepository;
 use Befit\Repository\UserRepository;
+use Befit\Security\PasswordHasher;
+use Befit\Security\PasswordPolicy;
 use Befit\Support\InputValidator;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -28,6 +30,8 @@ final class PasswordResetService
         private readonly string $resetBaseUrl,
         private readonly int $ttlMinutes,
         private readonly MailService $mail,
+        private readonly PasswordHasher $passwords,
+        private readonly PasswordPolicy $passwordPolicy,
         string $timezone
     ) {
         $this->timezone = new DateTimeZone($timezone);
@@ -86,10 +90,16 @@ If you did not request this, ignore this message.";
 
     public function reset(array $input): void
     {
-        (new InputValidator($input))
+        $validator = new InputValidator($input);
+        $validator
             ->requiredString('token', 64, 64)
-            ->requiredString('password', 8, 255)
-            ->throwIfInvalid();
+            ->requiredString('password', 12, 255);
+        if (isset($input['password']) && is_string($input['password'])) {
+            foreach ($this->passwordPolicy->errors($input['password']) as $error) {
+                $validator->addError('password', $error);
+            }
+        }
+        $validator->throwIfInvalid();
 
         $hash = hash('sha256', (string)$input['token']);
         $now = new DateTimeImmutable('now', $this->timezone);
@@ -100,7 +110,7 @@ If you did not request this, ignore this message.";
                 throw ApiException::validation(['token' => ['The password reset link is invalid or has expired.']]);
             }
             $userId = (int)$reset['user_id'];
-            $this->users->updatePassword($userId, password_hash((string)$input['password'], PASSWORD_DEFAULT));
+            $this->users->updatePassword($userId, $this->passwords->hash((string) $input['password']));
             $this->users->setMustChangePassword($userId, false);
             $this->tokens->deleteForUser($userId);
             $this->resets->markUsed((int)$reset['id'], $now->format('Y-m-d H:i:s'));

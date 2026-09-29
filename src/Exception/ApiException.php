@@ -12,7 +12,8 @@ final class ApiException extends RuntimeException
         public readonly int $status,
         string $message,
         public readonly array $errors = [],
-        public readonly string $errorCode = 'API_ERROR'
+        public readonly string $errorCode = 'API_ERROR',
+        public readonly array $headers = []
     ) {
         parent::__construct($message, $status);
     }
@@ -42,8 +43,15 @@ final class ApiException extends RuntimeException
         return new self(409, $message, [], 'CONFLICT');
     }
 
-    public static function tooManyRequests(string $message = 'Too many requests. Please try again later.'): self
-    {
-        return new self(429, $message, [], 'RATE_LIMITED');
+    public static function tooManyRequests(
+        string $message = 'Too many requests. Please try again later.',
+        ?int $retryAfter = null
+    ): self {
+        $headers = [];
+        if ($retryAfter !== null) {
+            $headers['Retry-After'] = (string) max(1, $retryAfter);
+        }
+
+        return new self(429, $message, [], 'RATE_LIMITED', $headers);
     }
 }

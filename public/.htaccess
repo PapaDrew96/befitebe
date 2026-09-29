@@ -1,8 +1,27 @@
 Options -Indexes
+DirectoryIndex index.php
 RewriteEngine On
 
-# Forward Authorization header to PHP/FastCGI
+# Forward Authorization header to PHP/FastCGI.
 SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+
+# Defense in depth for dynamic API responses. Application middleware also sets these.
+<IfModule mod_headers.c>
+    Header always unset X-Powered-By
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "DENY"
+    Header always set Referrer-Policy "no-referrer"
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+    Header always set X-Permitted-Cross-Domain-Policies "none"
+    Header always set Cache-Control "no-store, private, max-age=0"
+    Header always set Pragma "no-cache"
+    Header always set Expires "0"
+</IfModule>
+
+# Never expose hidden files if one is accidentally placed under public/.
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
 
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d

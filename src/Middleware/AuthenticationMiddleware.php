@@ -16,6 +16,7 @@ final class AuthenticationMiddleware implements MiddlewareInterface
 {
     public function __construct(
         private readonly TokenRepository $tokens,
+        private readonly int $idleTtlMinutes,
         private readonly ?string $requiredRole = null
     ) {
     }
@@ -28,8 +29,13 @@ final class AuthenticationMiddleware implements MiddlewareInterface
         }
 
         $tokenHash = hash('sha256', strtolower($matches[1]));
-        $now = (new DateTimeImmutable())->format('Y-m-d H:i:s');
-        $user = $this->tokens->findValidUserByHash($tokenHash, $now);
+        $now = new DateTimeImmutable();
+        $idleCutoff = $now->modify('-' . $this->idleTtlMinutes . ' minutes');
+        $user = $this->tokens->findValidUserByHash(
+            $tokenHash,
+            $now->format('Y-m-d H:i:s'),
+            $idleCutoff->format('Y-m-d H:i:s')
+        );
 
         if (!$user || $user['status'] !== 'active') {
             throw ApiException::unauthorized('Your session is invalid or has expired.');
@@ -59,7 +65,7 @@ final class AuthenticationMiddleware implements MiddlewareInterface
             }
         }
 
-        $this->tokens->touch($tokenHash, $now);
+        $this->tokens->touch($tokenHash, $now->format('Y-m-d H:i:s'));
 
         return $handler->handle(
             $request

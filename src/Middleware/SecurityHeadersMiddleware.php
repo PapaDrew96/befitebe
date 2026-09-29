@@ -17,7 +17,12 @@ final class SecurityHeadersMiddleware implements MiddlewareInterface
             ->withHeader('X-Content-Type-Options', 'nosniff')
             ->withHeader('X-Frame-Options', 'DENY')
             ->withHeader('Referrer-Policy', 'no-referrer')
-            ->withHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'; base-uri 'none'")
-            ->withHeader('Cache-Control', 'no-store');
+            ->withHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'")
+            ->withHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=()')
+            ->withHeader('X-Permitted-Cross-Domain-Policies', 'none')
+            ->withHeader('Strict-Transport-Security', 'max-age=31536000')
+            ->withHeader('Cache-Control', 'no-store, private, max-age=0')
+            ->withHeader('Pragma', 'no-cache')
+            ->withHeader('Expires', '0');
     }
 }

@@ -31,23 +31,40 @@ final class ApiErrorHandler
         $response = $this->responseFactory->createResponse();
 
         if ($exception instanceof ApiException) {
-            return ApiResponse::error(
+            $response = ApiResponse::error(
                 $response,
                 $exception->getMessage(),
                 $exception->status,
                 $exception->errors,
                 $exception->errorCode
             );
+
+            foreach ($exception->headers as $name => $value) {
+                $response = $response->withHeader((string) $name, (string) $value);
+            }
+
+            return $response;
         }
 
         if ($exception instanceof HttpException) {
             $status = $exception->getCode() > 0 ? $exception->getCode() : 500;
-            return ApiResponse::error($response, $exception->getMessage(), $status, [], 'HTTP_ERROR');
+            $message = $this->debug
+                ? $exception->getMessage()
+                : match ($status) {
+                    404 => 'Resource not found.',
+                    405 => 'Method not allowed.',
+                    default => 'The request could not be processed.',
+                };
+
+            return ApiResponse::error($response, $message, $status, [], 'HTTP_ERROR');
         }
 
         $this->logger->error('Unhandled API exception', [
             'request_id' => $request->getAttribute('request_id'),
-            'exception' => $exception,
+            'exception_class' => get_class($exception),
+            'exception_message' => $exception->getMessage(),
+            'exception_file' => $exception->getFile(),
+            'exception_line' => $exception->getLine(),
         ]);
 
         $errors = [];

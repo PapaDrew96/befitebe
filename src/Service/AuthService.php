@@ -9,6 +9,7 @@ use Befit\Exception\ApiException;
 use Befit\Repository\ActivityLogRepository;
 use Befit\Repository\TokenRepository;
 use Befit\Repository\UserRepository;
+use Befit\Security\PasswordHasher;
 use Befit\Support\InputValidator;
 use Befit\Support\UserPresenter;
 use DateTimeImmutable;
@@ -20,7 +21,9 @@ final class AuthService
         private readonly UserRepository $users,
         private readonly TokenRepository $tokens,
         private readonly ActivityLogRepository $activity,
-        private readonly int $tokenTtlDays
+        private readonly PasswordHasher $passwords,
+        private readonly int $tokenTtlDays,
+        private readonly int $maxActiveTokens
     ) {
     }
 
@@ -28,12 +31,20 @@ final class AuthService
     {
         (new InputValidator($input))
             ->requiredString('login', 1, 190)
-            ->requiredString('password', 8, 255)
+            ->requiredString('password', 1, 255)
             ->throwIfInvalid();
 
-        $user = $this->users->findByLogin(trim($input['login']));
+        $login = trim((string) $input['login']);
+        $password = (string) $input['password'];
+        $user = $this->users->findByLogin($login);
 
-        if (!$user || !password_verify($input['password'], $user['password_hash'])) {
+        if (!$user) {
+            // Perform a real password verification even for unknown accounts to reduce timing leaks.
+            $this->passwords->verifyDummy($password);
+            throw ApiException::unauthorized('Invalid login credentials.');
+        }
+
+        if (!$this->passwords->verify($password, (string) $user['password_hash'])) {
             throw ApiException::unauthorized('Invalid login credentials.');
         }
 
@@ -45,29 +56,42 @@ final class AuthService
         $tokenHash = hash('sha256', $rawToken);
         $now = new DateTimeImmutable();
         $expiresAt = $now->modify('+' . $this->tokenTtlDays . ' days');
+        $needsRehash = $this->passwords->needsRehash((string) $user['password_hash']);
 
         $this->database->transaction(function () use (
             $user,
+            $password,
+            $needsRehash,
             $tokenHash,
             $tokenName,
             $now,
             $expiresAt
         ): void {
+            $userId = (int) $user['id'];
+
+            if ($needsRehash) {
+                $this->users->updatePassword($userId, $this->passwords->hash($password));
+            }
+
+            $this->tokens->deleteExpiredForUser($userId, $now->format('Y-m-d H:i:s'));
             $this->tokens->create(
-                (int) $user['id'],
+                $userId,
                 $tokenHash,
                 mb_substr($tokenName, 0, 100),
                 $expiresAt->format('Y-m-d H:i:s')
             );
+            $this->tokens->trimForUser($userId, $this->maxActiveTokens);
+
             $this->users->updateLastLogin(
-                (int) $user['id'],
+                $userId,
                 $now->format('Y-m-d H:i:s')
             );
             $this->activity->log(
-                (int) $user['id'],
+                $userId,
                 'auth.login',
                 'user',
-                (int) $user['id']
+                $userId,
+                $needsRehash ? ['password_hash_upgraded' => true] : []
             );
         });
 

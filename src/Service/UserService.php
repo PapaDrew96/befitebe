@@ -71,8 +71,8 @@ final class UserService
     {
         $validator = new InputValidator($input);
         $validator
-            ->requiredString('first_name', 1, 100)
-            ->requiredString('last_name', 1, 100)
+            ->optionalString('first_name', 1, 100)
+            ->optionalString('last_name', 1, 100)
             ->optionalEmail('email')
             ->optionalString('phone', 3, 40)
             ->requiredString('password', 12, 255)
@@ -93,8 +93,8 @@ final class UserService
 
         $data = [
             'role' => $input['role'] ?? 'member',
-            'first_name' => trim($input['first_name']),
-            'last_name' => trim($input['last_name']),
+            'first_name' => $this->nullableTrim($input['first_name'] ?? null),
+            'last_name' => $this->nullableTrim($input['last_name'] ?? null),
             'email' => $this->nullableTrim($input['email'] ?? null),
             'phone' => $this->nullableTrim($input['phone'] ?? null),
             'password_hash' => $this->passwords->hash((string) $input['password']),

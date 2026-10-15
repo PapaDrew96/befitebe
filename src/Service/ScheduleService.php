@@ -286,23 +286,23 @@ final class ScheduleService
     }
 
     public function deleteTemplate(int $id, int $actorUserId): void
-    {
-        if (!$this->schedule->findTemplate($id)) {
-            throw ApiException::notFound('Schedule template not found.');
-        }
+	{
+		if (!$this->schedule->findTemplate($id)) {
+			throw ApiException::notFound('Schedule template not found.');
+		}
 
-        $this->database->transaction(
-            function () use ($id, $actorUserId): void {
-                $this->schedule->deactivateTemplate($id);
-                $this->activity->log(
-                    $actorUserId,
-                    'schedule.template_deactivate',
-                    'schedule_template',
-                    $id
-                );
-            }
-        );
-    }
+		$this->database->transaction(
+			function () use ($id, $actorUserId): void {
+				$this->schedule->deleteTemplate($id);
+				$this->activity->log(
+					$actorUserId,
+					'schedule.template_delete',
+					'schedule_template',
+					$id
+				);
+			}
+		);
+	}
 
     public function adminSessions(string $from, string $to): array
     {

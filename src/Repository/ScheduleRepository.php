@@ -46,11 +46,11 @@ final class ScheduleRepository
         ]);
     }
 
-    public function deactivateTemplate(int $id): void
-    {
-        $stmt = $this->pdo->prepare('UPDATE schedule_templates SET is_active = 0 WHERE id = :id');
-        $stmt->execute(['id' => $id]);
-    }
+    public function deleteTemplate(int $id): void
+	{
+		$stmt = $this->pdo->prepare('DELETE FROM schedule_templates WHERE id = :id');
+		$stmt->execute(['id' => $id]);
+	}
 
     public function createFromTemplateIfMissing(array $template, string $date): void
     {

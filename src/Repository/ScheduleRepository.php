@@ -45,6 +45,24 @@ final class ScheduleRepository
             'weekday', 'start_time', 'end_time', 'capacity', 'is_active'
         ]);
     }
+	
+	public function deleteFutureSessionsForTemplate(int $templateId): void
+	{
+		$stmt = $this->pdo->prepare(
+			'DELETE FROM gym_sessions
+			 WHERE template_id = :template_id
+			   AND session_date >= CURDATE()
+			   AND NOT EXISTS (
+				   SELECT 1
+				   FROM bookings
+				   WHERE bookings.session_id = gym_sessions.id
+			   )'
+		);
+
+		$stmt->execute([
+			'template_id' => $templateId,
+		]);
+	}
 
     public function deleteTemplate(int $id): void
 	{

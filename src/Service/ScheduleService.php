@@ -293,7 +293,9 @@ final class ScheduleService
 
 		$this->database->transaction(
 			function () use ($id, $actorUserId): void {
+				$this->schedule->deleteFutureSessionsForTemplate($id);
 				$this->schedule->deleteTemplate($id);
+
 				$this->activity->log(
 					$actorUserId,
 					'schedule.template_delete',

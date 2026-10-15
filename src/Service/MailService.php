@@ -26,9 +26,43 @@ final class MailService
         return $this->enabled;
     }
 
-    public function sendText(string $to, string $subject, string $body): bool
-    {
-        if (!$this->enabled || trim($to) === '') {
+    public function sendText(
+        string $to,
+        string $subject,
+        string $body
+    ): bool {
+        return $this->send(
+            $to,
+            $subject,
+            $body,
+            null
+        );
+    }
+
+    public function sendHtml(
+        string $to,
+        string $subject,
+        string $html,
+        string $text = ''
+    ): bool {
+        return $this->send(
+            $to,
+            $subject,
+            $html,
+            $text
+        );
+    }
+
+    private function send(
+        string $to,
+        string $subject,
+        string $body,
+        ?string $plainText
+    ): bool {
+        if (
+            !$this->enabled ||
+            trim($to) === ''
+        ) {
             return false;
         }
 
@@ -36,35 +70,65 @@ final class MailService
 
         try {
             $mail->isSMTP();
+
             $mail->Host = $this->host;
             $mail->Port = $this->port;
             $mail->SMTPAuth = true;
             $mail->Username = $this->username;
             $mail->Password = $this->password;
+
             $mail->CharSet = 'UTF-8';
+            $mail->Encoding = 'base64';
             $mail->Timeout = 20;
 
-            $encryption = strtolower(trim($this->encryption));
+            $encryption = strtolower(
+                trim($this->encryption)
+            );
 
-            if ($encryption === 'ssl' || $encryption === 'smtps') {
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
-            } elseif ($encryption === 'tls' || $encryption === 'starttls') {
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            if (
+                $encryption === 'ssl' ||
+                $encryption === 'smtps'
+            ) {
+                $mail->SMTPSecure =
+                    PHPMailer::ENCRYPTION_SMTPS;
+
+            } elseif (
+                $encryption === 'tls' ||
+                $encryption === 'starttls'
+            ) {
+                $mail->SMTPSecure =
+                    PHPMailer::ENCRYPTION_STARTTLS;
+
             } else {
                 $mail->SMTPSecure = '';
                 $mail->SMTPAutoTLS = false;
             }
 
-            $mail->setFrom($this->from, $this->fromName);
+            $mail->setFrom(
+                $this->from,
+                $this->fromName
+            );
+
             $mail->addAddress($to);
 
-            $mail->isHTML(false);
             $mail->Subject = $subject;
-            $mail->Body = $body;
+
+            if ($plainText !== null) {
+                $mail->isHTML(true);
+                $mail->Body = $body;
+                $mail->AltBody = $plainText;
+            } else {
+                $mail->isHTML(false);
+                $mail->Body = $body;
+            }
 
             return $mail->send();
+
         } catch (Exception $exception) {
-            error_log('BE-FIT mail delivery failed: ' . $exception->getMessage());
+            error_log(
+                'BE-FIT mail delivery failed: ' .
+                $exception->getMessage()
+            );
 
             return false;
         }

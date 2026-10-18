@@ -147,7 +147,7 @@ final class BookingService
             throw ApiException::validation(['status'=>['Invalid waiting-list status.']]);
         }
         $rows = $this->waitlist->adminList($from->format('Y-m-d'), $to->format('Y-m-d'), $status);
-        return array_map(static fn(array $row): array => [
+        return array_map(fn(array $row): array => [
             'id'=>(int)$row['id'],
             'session_id'=>(int)$row['session_id'],
             'user_id'=>(int)$row['user_id'],
@@ -164,7 +164,7 @@ final class BookingService
                 'id'=>(int)$row['user_id'],
                 'first_name'=>$row['first_name'],
                 'last_name'=>$row['last_name'],
-                'display_name'=>trim($row['first_name'].' '.$row['last_name']),
+                'display_name'=>$this->memberDisplayName($row),
                 'email'=>$row['email'],
                 'phone'=>$row['phone'],
             ],
@@ -263,8 +263,18 @@ final class BookingService
     private function normalize(array $row): array
     {
         $result=['id'=>(int)$row['id'],'session_id'=>(int)$row['session_id'],'user_id'=>(int)$row['user_id'],'status'=>$row['status'],'date'=>$row['session_date'],'start_time'=>substr($row['start_time'],0,5),'end_time'=>!empty($row['end_time'])?substr($row['end_time'],0,5):null,'session_status'=>$row['session_status']??null,'created_at'=>$row['created_at']??null,'cancelled_at'=>$row['cancelled_at']??null,'checked_in_at'=>$row['checked_in_at']??null];
-        if(array_key_exists('first_name',$row))$result['member']=['id'=>(int)$row['user_id'],'first_name'=>$row['first_name'],'last_name'=>$row['last_name'],'display_name'=>trim($row['first_name'].' '.$row['last_name']),'email'=>$row['email']??null,'phone'=>$row['phone']??null];
+        if(array_key_exists('first_name',$row))$result['member']=['id'=>(int)$row['user_id'],'first_name'=>$row['first_name'],'last_name'=>$row['last_name'],'display_name'=>$this->memberDisplayName($row),'email'=>$row['email']??null,'phone'=>$row['phone']??null];
         return $result;
+    }
+
+    private function memberDisplayName(array $row): string
+    {
+        $name=trim((string)($row['first_name']??'').' '.(string)($row['last_name']??''));
+        if($name!=='')return $name;
+        $email=trim((string)($row['email']??''));
+        if($email!=='')return $email;
+        $phone=trim((string)($row['phone']??''));
+        return $phone!==''?$phone:'Member';
     }
 
     private function settingInt(string $key,int $default): int { return max(0,(int)($this->settings->get($key,(string)$default)??$default)); }

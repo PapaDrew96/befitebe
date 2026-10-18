@@ -13,9 +13,17 @@ final class UserPresenter
 
         $name = trim($firstName . ' ' . $lastName);
 
+        $fallback = trim((string) ($user['email'] ?? ''));
+        if ($fallback === '') {
+            $fallback = trim((string) ($user['phone'] ?? ''));
+        }
+        if ($fallback === '') {
+            $fallback = 'Member #' . (int) $user['id'];
+        }
+
         $displayName = $name !== ''
             ? $name
-            : ((string) ($user['email'] ?? ''));
+            : $fallback;
 
         return [
             'id' => (int) $user['id'],
@@ -31,5 +39,12 @@ final class UserPresenter
             'created_at' => $user['created_at'] ?? null,
             'updated_at' => $user['updated_at'] ?? null,
         ];
+    }
+
+    public static function admin(array $user): array
+    {
+        $data = self::one($user);
+        $data['membership_deal'] = $user['membership_deal'] ?? null;
+        return $data;
     }
 }

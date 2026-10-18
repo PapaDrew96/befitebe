@@ -36,6 +36,15 @@ final class UserService
         return UserPresenter::one($user);
     }
 
+    public function getAdmin(int $id): array
+    {
+        $user = $this->users->findById($id);
+        if (!$user) {
+            throw ApiException::notFound('User not found.');
+        }
+        return UserPresenter::admin($user);
+    }
+
     public function paginate(array $query): array
     {
         $page = max(1, (int) ($query['page'] ?? 1));
@@ -45,6 +54,8 @@ final class UserService
             'search' => trim((string) ($query['search'] ?? '')),
             'role' => $query['role'] ?? null,
             'status' => $query['status'] ?? null,
+            'sort_by' => trim((string) ($query['sort_by'] ?? 'last_name')),
+            'sort_dir' => strtolower(trim((string) ($query['sort_dir'] ?? 'asc'))),
         ];
 
         if ($filters['role'] && !in_array($filters['role'], ['member', 'admin'], true)) {
@@ -53,11 +64,17 @@ final class UserService
         if ($filters['status'] && !in_array($filters['status'], ['active', 'inactive'], true)) {
             throw ApiException::validation(['status' => ['Invalid status.']]);
         }
+        if (!in_array($filters['sort_by'], ['first_name', 'last_name', 'email'], true)) {
+            throw ApiException::validation(['sort_by' => ['Invalid sort field.']]);
+        }
+        if (!in_array($filters['sort_dir'], ['asc', 'desc'], true)) {
+            throw ApiException::validation(['sort_dir' => ['Invalid sort direction.']]);
+        }
 
         $result = $this->users->paginate($filters, $page, $perPage);
 
         return [
-            'items' => array_map([UserPresenter::class, 'one'], $result['items']),
+            'items' => array_map([UserPresenter::class, 'admin'], $result['items']),
             'pagination' => [
                 'page' => $page,
                 'per_page' => $perPage,
@@ -71,10 +88,11 @@ final class UserService
     {
         $validator = new InputValidator($input);
         $validator
-            ->optionalString('first_name', 1, 100)
-            ->optionalString('last_name', 1, 100)
+            ->optionalString('first_name', 0, 100)
+            ->optionalString('last_name', 0, 100)
             ->optionalEmail('email')
             ->optionalString('phone', 3, 40)
+            ->optionalString('membership_deal', 0, 190)
             ->requiredString('password', 12, 255)
             ->oneOf('role', ['member', 'admin'])
             ->oneOf('status', ['active', 'inactive'])
@@ -97,6 +115,9 @@ final class UserService
             'last_name' => $this->nullableTrim($input['last_name'] ?? null),
             'email' => $this->nullableTrim($input['email'] ?? null),
             'phone' => $this->nullableTrim($input['phone'] ?? null),
+            'membership_deal' => ($input['role'] ?? 'member') === 'member'
+                ? $this->nullableTrim($input['membership_deal'] ?? null)
+                : null,
             'password_hash' => $this->passwords->hash((string) $input['password']),
             'status' => $input['status'] ?? 'active',
             'must_change_password' => array_key_exists('must_change_password', $input) ? (filter_var($input['must_change_password'], FILTER_VALIDATE_BOOL) ? 1 : 0) : 1,
@@ -123,7 +144,7 @@ final class UserService
             throw $exception;
         }
 
-        return $this->get($id);
+        return $this->getAdmin($id);
     }
 
     public function updateAdmin(int $id, array $input, int $actorUserId): array
@@ -135,10 +156,11 @@ final class UserService
 
         $validator = new InputValidator($input);
         $validator
-            ->optionalString('first_name', 1, 100, false)
-            ->optionalString('last_name', 1, 100, false)
+            ->optionalString('first_name', 0, 100)
+            ->optionalString('last_name', 0, 100)
             ->optionalEmail('email')
             ->optionalString('phone', 3, 40)
+            ->optionalString('membership_deal', 0, 190)
             ->oneOf('role', ['member', 'admin'])
             ->oneOf('status', ['active', 'inactive'])
             ->optionalString('password', 12, 255)
@@ -163,6 +185,11 @@ final class UserService
         }
 
         $data = $this->normalizeUserUpdate($input);
+
+        $nextRole = array_key_exists('role', $data) ? $data['role'] : $existing['role'];
+        if ($nextRole !== 'member') {
+            $data['membership_deal'] = null;
+        }
 
         $nextEmail = array_key_exists('email', $data) ? $data['email'] : $existing['email'];
         $nextPhone = array_key_exists('phone', $data) ? $data['phone'] : $existing['phone'];
@@ -218,15 +245,15 @@ final class UserService
             throw $exception;
         }
 
-        return $this->get($id);
+        return $this->getAdmin($id);
     }
 
     public function updateProfile(int $id, array $input): array
     {
         $validator = new InputValidator($input);
         $validator
-            ->optionalString('first_name', 1, 100, false)
-            ->optionalString('last_name', 1, 100, false)
+            ->optionalString('first_name', 0, 100)
+            ->optionalString('last_name', 0, 100)
             ->optionalEmail('email')
             ->optionalString('phone', 3, 40);
         $validator->throwIfInvalid();
@@ -235,7 +262,7 @@ final class UserService
 
         foreach (['first_name', 'last_name'] as $field) {
             if (array_key_exists($field, $input)) {
-                $data[$field] = trim((string) $input[$field]);
+                $data[$field] = $this->nullableTrim($input[$field]);
             }
         }
         foreach (['email', 'phone'] as $field) {
@@ -346,10 +373,10 @@ final class UserService
         }
         foreach (['first_name', 'last_name'] as $field) {
             if (array_key_exists($field, $input)) {
-                $data[$field] = trim((string) $input[$field]);
+                $data[$field] = $this->nullableTrim($input[$field]);
             }
         }
-        foreach (['email', 'phone'] as $field) {
+        foreach (['email', 'phone', 'membership_deal'] as $field) {
             if (array_key_exists($field, $input)) {
                 $data[$field] = $this->nullableTrim($input[$field]);
             }

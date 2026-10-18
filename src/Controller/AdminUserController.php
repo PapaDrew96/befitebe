@@ -34,7 +34,7 @@ final class AdminUserController extends BaseController
 
     public function show(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
     {
-        $user = $this->users->get((int) $args['id']);
+        $user = $this->users->getAdmin((int) $args['id']);
         $payment = $this->payments->currentStatuses([(int) $args['id']])[(int) $args['id']] ?? ['paid_until' => null, 'payment_status' => 'unpaid'];
         $user['paid_until'] = $payment['paid_until'];
         $user['payment_status'] = $payment['payment_status'];

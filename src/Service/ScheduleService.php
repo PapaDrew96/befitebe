@@ -129,8 +129,14 @@ final class ScheduleService
                         'user_id' => (int) $attendee['user_id'],
                         'booking_id' => (int) $attendee['booking_id'],
                         'display_name' => trim(
-                            $attendee['first_name'] . ' ' . $attendee['last_name']
-                        ),
+                            (string) ($attendee['first_name'] ?? '') . ' ' .
+                            (string) ($attendee['last_name'] ?? '')
+                        ) !== ''
+                            ? trim(
+                                (string) ($attendee['first_name'] ?? '') . ' ' .
+                                (string) ($attendee['last_name'] ?? '')
+                            )
+                            : 'Member',
                     ],
                     $attendees
                 );

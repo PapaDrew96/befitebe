@@ -132,7 +132,14 @@ final class BookingRepository
         if(!empty($filters['status'])){$where[]='b.status=:status';$params['status']=$filters['status'];}
         if(!empty($filters['user_id'])){$where[]='b.user_id=:user_id';$params['user_id']=(int)$filters['user_id'];}
         if(!empty($filters['session_id'])){$where[]='b.session_id=:session_id';$params['session_id']=(int)$filters['session_id'];}
-        if(!empty($filters['search'])){$where[]='(u.first_name LIKE :search OR u.last_name LIKE :search OR u.email LIKE :search OR u.phone LIKE :search)';$params['search']='%'.$filters['search'].'%';}
+        if(!empty($filters['search'])){
+            $where[]='(u.first_name LIKE :search_first_name OR u.last_name LIKE :search_last_name OR u.email LIKE :search_email OR u.phone LIKE :search_phone)';
+            $search='%'.$filters['search'].'%';
+            $params['search_first_name']=$search;
+            $params['search_last_name']=$search;
+            $params['search_email']=$search;
+            $params['search_phone']=$search;
+        }
         $whereSql=$where===[]?'':' WHERE '.implode(' AND ',$where);
         $base=' FROM bookings b INNER JOIN gym_sessions s ON s.id=b.session_id INNER JOIN users u ON u.id=b.user_id';
         $count=$this->pdo->prepare('SELECT COUNT(*)'.$base.$whereSql);$count->execute($params);$total=(int)$count->fetchColumn();

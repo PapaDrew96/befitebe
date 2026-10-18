@@ -32,17 +32,18 @@ final class UserRepository
     {
         $stmt = $this->pdo->prepare(
             'INSERT INTO users
-                (role, first_name, last_name, email, phone, password_hash, status, must_change_password)
+                (role, first_name, last_name, email, phone, membership_deal, password_hash, status, must_change_password)
              VALUES
-                (:role, :first_name, :last_name, :email, :phone, :password_hash, :status, :must_change_password)'
+                (:role, :first_name, :last_name, :email, :phone, :membership_deal, :password_hash, :status, :must_change_password)'
         );
+        $data['membership_deal'] = $data['membership_deal'] ?? null;
         $stmt->execute($data);
         return (int) $this->pdo->lastInsertId();
     }
 
     public function update(int $id, array $data): void
     {
-        $allowed = ['role', 'first_name', 'last_name', 'email', 'phone', 'status', 'must_change_password'];
+        $allowed = ['role', 'first_name', 'last_name', 'email', 'phone', 'membership_deal', 'status', 'must_change_password'];
         $sets = [];
         $params = ['id' => $id];
 
@@ -81,80 +82,63 @@ final class UserRepository
     }
 
     public function paginate(array $filters, int $page, int $perPage): array
-{
-    $where = [];
-    $params = [];
+    {
+        $where = [];
+        $params = [];
 
-    if (!empty($filters['search'])) {
-        $where[] = '(
-            first_name LIKE :search_first_name
-            OR last_name LIKE :search_last_name
-            OR email LIKE :search_email
-            OR phone LIKE :search_phone
-        )';
+        if (!empty($filters['search'])) {
+            $where[] = '(
+                first_name LIKE :search_first_name
+                OR last_name LIKE :search_last_name
+                OR email LIKE :search_email
+                OR phone LIKE :search_phone
+            )';
 
-        $search = '%' . $filters['search'] . '%';
+            $search = '%' . $filters['search'] . '%';
+            $params['search_first_name'] = $search;
+            $params['search_last_name'] = $search;
+            $params['search_email'] = $search;
+            $params['search_phone'] = $search;
+        }
+        if (!empty($filters['role'])) {
+            $where[] = 'role = :role';
+            $params['role'] = $filters['role'];
+        }
+        if (!empty($filters['status'])) {
+            $where[] = 'status = :status';
+            $params['status'] = $filters['status'];
+        }
 
-        $params['search_first_name'] = $search;
-        $params['search_last_name'] = $search;
-        $params['search_email'] = $search;
-        $params['search_phone'] = $search;
-    }
+        $whereSql = $where === [] ? '' : ' WHERE ' . implode(' AND ', $where);
 
-    if (!empty($filters['role'])) {
-        $where[] = 'role = :role';
-        $params['role'] = $filters['role'];
-    }
+        $countStmt = $this->pdo->prepare('SELECT COUNT(*) FROM users' . $whereSql);
+        $countStmt->execute($params);
+        $total = (int) $countStmt->fetchColumn();
 
-    if (!empty($filters['status'])) {
-        $where[] = 'status = :status';
-        $params['status'] = $filters['status'];
-    }
+        $sortColumns = [
+            'first_name' => 'first_name',
+            'last_name' => 'last_name',
+            'email' => 'email',
+        ];
 
-    $whereSql = $where === []
-        ? ''
-        : ' WHERE ' . implode(' AND ', $where);
+        $sortBy = $sortColumns[$filters['sort_by'] ?? 'last_name'] ?? 'last_name';
+        $sortDir = ($filters['sort_dir'] ?? 'asc') === 'desc' ? 'DESC' : 'ASC';
 
-    $countStmt = $this->pdo->prepare(
-        'SELECT COUNT(*) FROM users' . $whereSql
-    );
+        $orderSql =
+            ' ORDER BY (' . $sortBy . ' IS NULL OR ' . $sortBy . " = '') ASC, " .
+            $sortBy . ' ' . $sortDir . ', id ASC';
 
-    $countStmt->execute($params);
-
-    $total = (int) $countStmt->fetchColumn();
-
-    $offset = ($page - 1) * $perPage;
-
-    $stmt = $this->pdo->prepare(
-        'SELECT * FROM users' .
-        $whereSql .
-        ' ORDER BY last_name, first_name LIMIT :limit OFFSET :offset'
-    );
-
-    foreach ($params as $key => $value) {
-        $stmt->bindValue(
-            ':' . $key,
-            $value
+        $offset = ($page - 1) * $perPage;
+        $stmt = $this->pdo->prepare(
+            'SELECT * FROM users' . $whereSql . $orderSql . ' LIMIT :limit OFFSET :offset'
         );
+        foreach ($params as $key => $value) {
+            $stmt->bindValue(':' . $key, $value);
+        }
+        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return ['items' => $stmt->fetchAll(), 'total' => $total];
     }
-
-    $stmt->bindValue(
-        ':limit',
-        $perPage,
-        PDO::PARAM_INT
-    );
-
-    $stmt->bindValue(
-        ':offset',
-        $offset,
-        PDO::PARAM_INT
-    );
-
-    $stmt->execute();
-
-    return [
-        'items' => $stmt->fetchAll(),
-        'total' => $total,
-    ];
-}
 }

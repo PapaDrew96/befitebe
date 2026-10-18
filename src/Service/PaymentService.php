@@ -41,12 +41,18 @@ final class PaymentService
             throw ApiException::notFound('User not found.');
         }
 
+        $name = trim((string) ($user['first_name'] ?? '') . ' ' . (string) ($user['last_name'] ?? ''));
+        $fallback = trim((string) ($user['email'] ?? ''));
+        if ($fallback === '') {
+            $fallback = trim((string) ($user['phone'] ?? ''));
+        }
+
         $summary = $this->summary($userId, true);
         $summary['user'] = [
             'id' => (int) $user['id'],
             'first_name' => $user['first_name'],
             'last_name' => $user['last_name'],
-            'display_name' => trim($user['first_name'] . ' ' . $user['last_name']),
+            'display_name' => $name !== '' ? $name : $fallback,
             'role' => $user['role'],
             'status' => $user['status'],
         ];

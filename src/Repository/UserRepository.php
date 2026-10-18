@@ -81,40 +81,80 @@ final class UserRepository
     }
 
     public function paginate(array $filters, int $page, int $perPage): array
-    {
-        $where = [];
-        $params = [];
+{
+    $where = [];
+    $params = [];
 
-        if (!empty($filters['search'])) {
-            $where[] = '(first_name LIKE :search OR last_name LIKE :search OR email LIKE :search OR phone LIKE :search)';
-            $params['search'] = '%' . $filters['search'] . '%';
-        }
-        if (!empty($filters['role'])) {
-            $where[] = 'role = :role';
-            $params['role'] = $filters['role'];
-        }
-        if (!empty($filters['status'])) {
-            $where[] = 'status = :status';
-            $params['status'] = $filters['status'];
-        }
+    if (!empty($filters['search'])) {
+        $where[] = '(
+            first_name LIKE :search_first_name
+            OR last_name LIKE :search_last_name
+            OR email LIKE :search_email
+            OR phone LIKE :search_phone
+        )';
 
-        $whereSql = $where === [] ? '' : ' WHERE ' . implode(' AND ', $where);
+        $search = '%' . $filters['search'] . '%';
 
-        $countStmt = $this->pdo->prepare('SELECT COUNT(*) FROM users' . $whereSql);
-        $countStmt->execute($params);
-        $total = (int) $countStmt->fetchColumn();
-
-        $offset = ($page - 1) * $perPage;
-        $stmt = $this->pdo->prepare(
-            'SELECT * FROM users' . $whereSql . ' ORDER BY last_name, first_name LIMIT :limit OFFSET :offset'
-        );
-        foreach ($params as $key => $value) {
-            $stmt->bindValue(':' . $key, $value);
-        }
-        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
-        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-        $stmt->execute();
-
-        return ['items' => $stmt->fetchAll(), 'total' => $total];
+        $params['search_first_name'] = $search;
+        $params['search_last_name'] = $search;
+        $params['search_email'] = $search;
+        $params['search_phone'] = $search;
     }
+
+    if (!empty($filters['role'])) {
+        $where[] = 'role = :role';
+        $params['role'] = $filters['role'];
+    }
+
+    if (!empty($filters['status'])) {
+        $where[] = 'status = :status';
+        $params['status'] = $filters['status'];
+    }
+
+    $whereSql = $where === []
+        ? ''
+        : ' WHERE ' . implode(' AND ', $where);
+
+    $countStmt = $this->pdo->prepare(
+        'SELECT COUNT(*) FROM users' . $whereSql
+    );
+
+    $countStmt->execute($params);
+
+    $total = (int) $countStmt->fetchColumn();
+
+    $offset = ($page - 1) * $perPage;
+
+    $stmt = $this->pdo->prepare(
+        'SELECT * FROM users' .
+        $whereSql .
+        ' ORDER BY last_name, first_name LIMIT :limit OFFSET :offset'
+    );
+
+    foreach ($params as $key => $value) {
+        $stmt->bindValue(
+            ':' . $key,
+            $value
+        );
+    }
+
+    $stmt->bindValue(
+        ':limit',
+        $perPage,
+        PDO::PARAM_INT
+    );
+
+    $stmt->bindValue(
+        ':offset',
+        $offset,
+        PDO::PARAM_INT
+    );
+
+    $stmt->execute();
+
+    return [
+        'items' => $stmt->fetchAll(),
+        'total' => $total,
+    ];
+}
 }

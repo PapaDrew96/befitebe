@@ -56,6 +56,29 @@ There is no maximum-active-bookings or per-day booking quantity limit. Administr
 
 Existing admin endpoints remain available for users, schedule templates, dated sessions, closures, bookings, announcements and settings.
 
+### Member directory
+
+`GET /admin/users?search=&role=&status=&sort_by=&sort_dir=&page=&per_page=`
+
+- `sort_by`: `first_name`, `last_name`, or `email`
+- `sort_dir`: `asc` or `desc`
+- users with an empty value for the selected sort field are placed after users that have a value
+
+Administrator create/update payloads accept the optional `membership_deal` field for member accounts. Example:
+
+```json
+{
+  "first_name": "Maria",
+  "last_name": "Papadopoulou",
+  "email": "maria@example.com",
+  "phone": null,
+  "membership_deal": "80€ / month",
+  "role": "member",
+  "status": "active"
+}
+```
+
+`first_name` and `last_name` are optional. `membership_deal` is administrator-managed and is returned by the admin user endpoints.
 
 ### Member payment validation
 

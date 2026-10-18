@@ -5,8 +5,11 @@
 /storage/cache/*
 /storage/backups/*
 /database/backups/
+/database/
 *.sql.gz
 !.gitkeep
+*.sql
+/docs/
 
 .DS_Store
 Thumbs.db

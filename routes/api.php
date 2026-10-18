@@ -13,6 +13,7 @@ use Befit\Controller\AdminUserController;
 use Befit\Controller\AnnouncementController;
 use Befit\Controller\AuthController;
 use Befit\Controller\BookingController;
+use Befit\Controller\BookingRulesController;
 use Befit\Controller\HealthController;
 use Befit\Controller\NotificationController;
 use Befit\Controller\PasswordResetController;
@@ -90,6 +91,8 @@ return static function (App $app, array $c): void {
             $member->put('/profile/password', [$c[ProfileController::class], 'changePassword']);
 
             $member->get('/schedule/week', [$c[ScheduleController::class], 'week']);
+
+            $member->get('/booking-rules', [$c[BookingRulesController::class], 'show']);
 
             $member->get('/bookings', [$c[BookingController::class], 'index']);
             $member->post('/bookings', [$c[BookingController::class], 'create']);

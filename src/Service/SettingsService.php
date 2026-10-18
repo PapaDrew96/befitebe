@@ -40,6 +40,20 @@ final class SettingsService
         ];
     }
 
+    public function memberRules(): array
+    {
+        $settings = $this->all();
+
+        return [
+            'booking_days_ahead' => $settings['booking_days_ahead'],
+            'booking_cutoff_minutes' => $settings['booking_cutoff_minutes'],
+            'cancellation_cutoff_minutes' => $settings['cancellation_cutoff_minutes'],
+            'waitlist_enabled' => $settings['waitlist_enabled'],
+            'auto_promote_waitlist' => $settings['auto_promote_waitlist'],
+            'show_attendee_names' => $settings['show_attendee_names'],
+        ];
+    }
+
     public function update(array $input, int $actorUserId): array
     {
         $unknown = array_diff(array_keys($input), self::ALLOWED);

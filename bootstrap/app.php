@@ -13,6 +13,7 @@ use Befit\Controller\AdminUserController;
 use Befit\Controller\AnnouncementController;
 use Befit\Controller\AuthController;
 use Befit\Controller\BookingController;
+use Befit\Controller\BookingRulesController;
 use Befit\Controller\HealthController;
 use Befit\Controller\NotificationController;
 use Befit\Controller\PasswordResetController;
@@ -220,6 +221,7 @@ $c = [
     ProfileController::class => new ProfileController($userService),
     ScheduleController::class => new ScheduleController($scheduleService),
     BookingController::class => new BookingController($bookingService),
+    BookingRulesController::class => new BookingRulesController($settingsService),
     AnnouncementController::class => new AnnouncementController($announcementService),
     NotificationController::class => new NotificationController($notificationService),
     AdminDashboardController::class => new AdminDashboardController($dashboardService),

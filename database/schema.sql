@@ -29,10 +29,11 @@ SET FOREIGN_KEY_CHECKS = 1;
 CREATE TABLE `users` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `role` VARCHAR(20) NOT NULL DEFAULT 'member',
-  `first_name` VARCHAR(100) NOT NULL,
-  `last_name` VARCHAR(100) NOT NULL,
+  `first_name` VARCHAR(100) NULL,
+  `last_name` VARCHAR(100) NULL,
   `email` VARCHAR(190) NULL,
   `phone` VARCHAR(40) NULL,
+  `membership_deal` VARCHAR(190) NULL,
   `password_hash` VARCHAR(255) NOT NULL,
   `status` VARCHAR(20) NOT NULL DEFAULT 'active',
   `must_change_password` TINYINT(1) NOT NULL DEFAULT 0,

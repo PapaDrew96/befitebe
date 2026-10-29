@@ -45,6 +45,12 @@ final class NotificationRepository
         $stmt->execute(['user_id' => $userId]);
     }
 
+    public function deleteForUser(int $userId): void
+    {
+        $stmt = $this->pdo->prepare('DELETE FROM notifications WHERE user_id = :user_id');
+        $stmt->execute(['user_id' => $userId]);
+    }
+
     public function unreadCount(int $userId): int
     {
         $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM notifications WHERE user_id=:user_id AND read_at IS NULL');

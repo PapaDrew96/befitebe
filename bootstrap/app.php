@@ -43,6 +43,7 @@ use Befit\Repository\WaitlistRepository;
 use Befit\Security\PasswordHasher;
 use Befit\Security\PasswordPolicy;
 use Befit\Security\ProductionSecurity;
+use Befit\Service\AccountDeletionService;
 use Befit\Service\AnnouncementService;
 use Befit\Service\AuthService;
 use Befit\Service\BookingService;
@@ -136,6 +137,21 @@ $userService = new UserService(
     $passwordHasher,
     $passwordPolicy
 );
+$accountDeletionService = new AccountDeletionService(
+    $database,
+    $userRepository,
+    $tokenRepository,
+    $passwordResetRepository,
+    $bookingRepository,
+    $scheduleRepository,
+    $settingRepository,
+    $waitlistRepository,
+    $notificationRepository,
+    $paymentRepository,
+    $activityRepository,
+    $passwordHasher,
+    $config['app']['timezone']
+);
 $scheduleService = new ScheduleService(
     $database,
     $scheduleRepository,
@@ -218,7 +234,7 @@ $c = [
     AuthController::class => new AuthController($authService, $userService),
     PasswordResetController::class => new PasswordResetController($passwordResetService),
     PaymentController::class => new PaymentController($paymentService),
-    ProfileController::class => new ProfileController($userService),
+    ProfileController::class => new ProfileController($userService, $accountDeletionService),
     ScheduleController::class => new ScheduleController($scheduleService),
     BookingController::class => new BookingController($bookingService),
     BookingRulesController::class => new BookingRulesController($settingsService),

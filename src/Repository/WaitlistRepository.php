@@ -43,6 +43,12 @@ final class WaitlistRepository
         $stmt->execute(['id' => $id]);
     }
 
+    public function deleteForUser(int $userId): void
+    {
+        $stmt = $this->pdo->prepare('DELETE FROM waitlist_entries WHERE user_id = :user_id');
+        $stmt->execute(['user_id' => $userId]);
+    }
+
     public function nextWaitingForUpdate(int $sessionId): ?array
     {
         $stmt = $this->pdo->prepare("SELECT w.*, u.status AS user_status FROM waitlist_entries w INNER JOIN users u ON u.id=w.user_id WHERE w.session_id=:session_id AND w.status='waiting' ORDER BY w.joined_at ASC, w.id ASC LIMIT 1 FOR UPDATE");

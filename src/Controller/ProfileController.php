@@ -5,14 +5,17 @@ declare(strict_types=1);
 namespace Befit\Controller;
 
 use Befit\Http\ApiResponse;
+use Befit\Service\AccountDeletionService;
 use Befit\Service\UserService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 final class ProfileController extends BaseController
 {
-    public function __construct(private readonly UserService $users)
-    {
+    public function __construct(
+        private readonly UserService $users,
+        private readonly AccountDeletionService $accountDeletion
+    ) {
     }
 
     public function show(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
@@ -26,6 +29,15 @@ final class ProfileController extends BaseController
             $response,
             $this->users->updateProfile($this->userId($request), $this->body($request)),
             'Profile updated successfully.'
+        );
+    }
+
+    public function deleteAccount(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    {
+        return ApiResponse::success(
+            $response,
+            $this->accountDeletion->deleteOwnAccount($this->userId($request), $this->body($request)),
+            'Your account has been deleted.'
         );
     }
 

@@ -89,6 +89,7 @@ return static function (App $app, array $c): void {
             $member->get('/profile', [$c[ProfileController::class], 'show']);
             $member->put('/profile', [$c[ProfileController::class], 'update']);
             $member->put('/profile/password', [$c[ProfileController::class], 'changePassword']);
+            $member->delete('/profile/account', [$c[ProfileController::class], 'deleteAccount']);
 
             $member->get('/schedule/week', [$c[ScheduleController::class], 'week']);
 

@@ -14,7 +14,7 @@ final class UserRepository
 
     public function findById(int $id): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM users WHERE id = :id LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT * FROM users WHERE id = :id AND deleted_at IS NULL LIMIT 1');
         $stmt->execute(['id' => $id]);
         return $stmt->fetch() ?: null;
     }
@@ -22,10 +22,55 @@ final class UserRepository
     public function findByLogin(string $login): ?array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT * FROM users WHERE email = :email OR phone = :phone LIMIT 1'
+            'SELECT * FROM users WHERE deleted_at IS NULL AND (email = :email OR phone = :phone) LIMIT 1'
         );
         $stmt->execute(['email' => $login, 'phone' => $login]);
         return $stmt->fetch() ?: null;
+    }
+
+    public function findByIdForUpdate(int $id): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT * FROM users WHERE id = :id AND deleted_at IS NULL LIMIT 1 FOR UPDATE'
+        );
+        $stmt->execute(['id' => $id]);
+        return $stmt->fetch() ?: null;
+    }
+
+    public function countOtherActiveAdmins(int $excludeUserId): int
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT COUNT(*) FROM users
+             WHERE role = 'admin'
+               AND status = 'active'
+               AND deleted_at IS NULL
+               AND id <> :exclude_user_id"
+        );
+        $stmt->execute(['exclude_user_id' => $excludeUserId]);
+        return (int) $stmt->fetchColumn();
+    }
+
+    public function anonymizeForDeletion(int $id, string $passwordHash, string $deletedAt): void
+    {
+        $stmt = $this->pdo->prepare(
+            "UPDATE users
+             SET first_name = NULL,
+                 last_name = NULL,
+                 email = NULL,
+                 phone = NULL,
+                 membership_deal = NULL,
+                 password_hash = :password_hash,
+                 status = 'inactive',
+                 must_change_password = 0,
+                 last_login_at = NULL,
+                 deleted_at = :deleted_at
+             WHERE id = :id"
+        );
+        $stmt->execute([
+            'password_hash' => $passwordHash,
+            'deleted_at' => $deletedAt,
+            'id' => $id,
+        ]);
     }
 
     public function create(array $data): int
@@ -83,7 +128,7 @@ final class UserRepository
 
     public function paginate(array $filters, int $page, int $perPage): array
     {
-        $where = [];
+        $where = ['deleted_at IS NULL'];
         $params = [];
 
         if (!empty($filters['search'])) {

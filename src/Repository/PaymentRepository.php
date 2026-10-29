@@ -37,6 +37,12 @@ final class PaymentRepository
         return $stmt->fetchAll();
     }
 
+    public function deleteForUser(int $userId): void
+    {
+        $stmt = $this->pdo->prepare('DELETE FROM member_payments WHERE user_id = :user_id');
+        $stmt->execute(['user_id' => $userId]);
+    }
+
     public function create(
         int $userId,
         string $paymentDate,

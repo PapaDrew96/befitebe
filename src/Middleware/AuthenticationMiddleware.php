@@ -52,6 +52,7 @@ final class AuthenticationMiddleware implements MiddlewareInterface
                 '/api/v1/auth/me',
                 '/api/v1/profile',
                 '/api/v1/profile/password',
+                '/api/v1/profile/account',
             ];
             $allowed = false;
             foreach ($allowedSuffixes as $suffix) {

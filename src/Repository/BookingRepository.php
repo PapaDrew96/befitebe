@@ -36,6 +36,22 @@ final class BookingRepository
         return (int)$stmt->fetchColumn();
     }
 
+    public function futureActiveForUserForUpdate(int $userId, string $nowDateTime): array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT b.id, b.session_id, b.status, s.session_date, s.start_time
+             FROM bookings b
+             INNER JOIN gym_sessions s ON s.id = b.session_id
+             WHERE b.user_id = :user_id
+               AND b.status IN ('booked', 'checked_in')
+               AND TIMESTAMP(s.session_date, s.start_time) > :now_dt
+             ORDER BY s.session_date, s.start_time, b.id
+             FOR UPDATE"
+        );
+        $stmt->execute(['user_id' => $userId, 'now_dt' => $nowDateTime]);
+        return $stmt->fetchAll();
+    }
+
     public function countFutureActiveForUser(int $userId, string $nowDateTime): int
     {
         $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM bookings b INNER JOIN gym_sessions s ON s.id=b.session_id

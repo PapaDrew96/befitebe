@@ -28,6 +28,7 @@ Authenticated requests use `Authorization: Bearer <token>`.
 | GET | `/profile` | Profile |
 | PUT | `/profile` | Update contact/profile |
 | PUT | `/profile/password` | Change password and revoke all tokens |
+| DELETE | `/profile/account` | Permanently delete/anonymize own account; requires current password + confirmation |
 | GET | `/schedule/week?date=YYYY-MM-DD` | Weekly schedule, booking/waitlist state |
 | GET | `/bookings?from=&to=` | Own booking history/upcoming |
 | POST | `/bookings` | Book `{ "session_id": 123 }` |
@@ -39,6 +40,21 @@ Authenticated requests use `Authorization: Bearer <token>`.
 | PATCH | `/notifications/read-all` | Mark all notifications read |
 | GET | `/announcements` | Active announcements |
 | GET | `/payments` | Own membership payment status + history |
+
+### Account deletion
+
+Request body:
+
+```json
+{
+  "current_password": "YourCurrentPassword",
+  "confirm": true
+}
+```
+
+Deletion revokes all API tokens, removes password-reset tokens, notifications, waiting-list entries and app-level membership payment records, cancels future active bookings, and irreversibly removes identifying profile fields. Historical booking/attendance rows retain their internal user foreign key only so aggregate gym records remain consistent; the linked user row no longer contains identifying contact/profile data.
+
+The final active administrator cannot delete their own account until another administrator is active.
 
 ## Booking rules
 

@@ -18,6 +18,7 @@ use Befit\Repository\UserRepository;
 use Befit\Repository\WaitlistRepository;
 use Befit\Security\PasswordHasher;
 use Befit\Support\InputValidator;
+use Befit\Repository\PushDeviceRepository;
 use DateTimeImmutable;
 use DateTimeZone;
 
@@ -35,6 +36,7 @@ final class AccountDeletionService
         private readonly SettingRepository $settings,
         private readonly WaitlistRepository $waitlist,
         private readonly NotificationRepository $notifications,
+        private readonly PushDeviceRepository $pushDevices,
         private readonly PaymentRepository $payments,
         private readonly ActivityLogRepository $activity,
         private readonly PasswordHasher $passwords,
@@ -97,6 +99,7 @@ final class AccountDeletionService
 
             // Data that is no longer needed after account deletion is removed.
             $this->notifications->deleteForUser($userId);
+            $this->pushDevices->deleteForUser($userId);
             $this->passwordResets->deleteForUser($userId);
             $this->payments->deleteForUser($userId);
             $this->tokens->deleteForUser($userId);

@@ -90,6 +90,8 @@ return static function (App $app, array $c): void {
             $member->put('/profile', [$c[ProfileController::class], 'update']);
             $member->put('/profile/password', [$c[ProfileController::class], 'changePassword']);
             $member->delete('/profile/account', [$c[ProfileController::class], 'deleteAccount']);
+            $member->post('/profile/push-devices', [$c[NotificationController::class], 'registerPushDevice']);
+            $member->delete('/profile/push-devices', [$c[NotificationController::class], 'unregisterPushDevice']);
 
             $member->get('/schedule/week', [$c[ScheduleController::class], 'week']);
 

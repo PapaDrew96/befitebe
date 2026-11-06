@@ -31,6 +31,7 @@ use Befit\Repository\AnnouncementRepository;
 use Befit\Repository\BookingRepository;
 use Befit\Repository\DashboardRepository;
 use Befit\Repository\NotificationRepository;
+use Befit\Repository\PushDeviceRepository;
 use Befit\Repository\PasswordResetRepository;
 use Befit\Repository\PaymentRepository;
 use Befit\Repository\RateLimitRepository;
@@ -50,6 +51,7 @@ use Befit\Service\BookingService;
 use Befit\Service\DashboardService;
 use Befit\Service\MailService;
 use Befit\Service\NotificationService;
+use Befit\Service\PushDeviceService;
 use Befit\Service\PasswordResetService;
 use Befit\Service\PaymentService;
 use Befit\Service\ReportService;
@@ -108,6 +110,7 @@ $activityRepository = new ActivityLogRepository($pdo);
 $waitlistRepository = new WaitlistRepository($pdo);
 $notificationRepository = new NotificationRepository($pdo);
 $passwordResetRepository = new PasswordResetRepository($pdo);
+$pushDeviceRepository = new PushDeviceRepository($pdo);
 $reportRepository = new ReportRepository($pdo);
 $paymentRepository = new PaymentRepository($pdo);
 
@@ -147,6 +150,7 @@ $accountDeletionService = new AccountDeletionService(
     $settingRepository,
     $waitlistRepository,
     $notificationRepository,
+    $pushDeviceRepository,
     $paymentRepository,
     $activityRepository,
     $passwordHasher,
@@ -191,6 +195,7 @@ $settingsService = new SettingsService(
     $activityRepository
 );
 $notificationService = new NotificationService($notificationRepository);
+$pushDeviceService = new PushDeviceService($pushDeviceRepository);
 $mailService = new MailService(
     $config['mail']['enabled'],
     $config['mail']['host'],
@@ -239,7 +244,10 @@ $c = [
     BookingController::class => new BookingController($bookingService),
     BookingRulesController::class => new BookingRulesController($settingsService),
     AnnouncementController::class => new AnnouncementController($announcementService),
-    NotificationController::class => new NotificationController($notificationService),
+    NotificationController::class => new NotificationController(
+    $notificationService,
+    $pushDeviceService
+),
     AdminDashboardController::class => new AdminDashboardController($dashboardService),
     AdminUserController::class => new AdminUserController($userService, $paymentService),
     AdminPaymentController::class => new AdminPaymentController($paymentService),

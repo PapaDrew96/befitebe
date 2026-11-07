@@ -84,15 +84,21 @@ final class ProductionSecurity
             } elseif (!is_file($credentialsPath) || !is_readable($credentialsPath)) {
                 $errors[] = 'FIREBASE_CREDENTIALS_PATH must point to a readable service-account JSON file.';
             } else {
-                $appRoot = realpath(dirname(__DIR__, 2));
+                $publicRoot = realpath(dirname(__DIR__, 2) . '/public');
                 $credentialsRealPath = realpath($credentialsPath);
 
                 if (
-                    $appRoot !== false
+                    $publicRoot !== false
                     && $credentialsRealPath !== false
-                    && str_starts_with($credentialsRealPath, $appRoot . DIRECTORY_SEPARATOR)
+                    && (
+                        $credentialsRealPath === $publicRoot
+                        || str_starts_with(
+                            $credentialsRealPath,
+                            $publicRoot . DIRECTORY_SEPARATOR
+                        )
+                    )
                 ) {
-                    $errors[] = 'Firebase credentials must be stored outside the application root.';
+                    $errors[] = 'Firebase credentials must not be stored inside the public document root.';
                 }
             }
 

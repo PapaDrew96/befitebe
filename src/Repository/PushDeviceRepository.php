@@ -10,20 +10,22 @@ final class PushDeviceRepository
 {
     public function __construct(private readonly PDO $pdo) {}
 
-    public function upsert(int $userId, string $token, string $platform): void
+    public function upsert(int $userId, string $token, string $platform, string $language): void
     {
         $stmt = $this->pdo->prepare(
-            'INSERT INTO push_devices (user_id,token,platform)
-             VALUES (:user_id,:token,:platform)
+            'INSERT INTO push_devices (user_id,token,platform,language)
+             VALUES (:user_id,:token,:platform,:language)
              ON DUPLICATE KEY UPDATE
                 user_id=VALUES(user_id),
                 platform=VALUES(platform),
+                language=VALUES(language),
                 updated_at=CURRENT_TIMESTAMP'
         );
         $stmt->execute([
             'user_id' => $userId,
             'token' => $token,
             'platform' => $platform,
+            'language' => $language,
         ]);
     }
 
@@ -57,7 +59,7 @@ final class PushDeviceRepository
     public function forUser(int $userId): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT id,user_id,token,platform,created_at,updated_at
+            'SELECT id,user_id,token,platform,language,created_at,updated_at
              FROM push_devices
              WHERE user_id=:user_id
              ORDER BY updated_at DESC,id DESC'

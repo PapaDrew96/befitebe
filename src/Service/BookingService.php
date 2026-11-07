@@ -190,7 +190,19 @@ final class BookingService
             $id=$this->bookings->upsertBooked($sessionId,$targetUserId,$actorUserId);
             $waiting=$this->waitlist->findBySessionAndUser($sessionId,$targetUserId);
             if($waiting&&$waiting['status']==='waiting')$this->waitlist->markPromoted((int)$waiting['id'],$id);
-            $this->notifications->create($targetUserId,'booking_confirmed','Booking confirmed','Your training place has been reserved.',['booking_id'=>$id,'session_id'=>$sessionId]);
+            $this->notifications->create(
+                $targetUserId,
+                'booking_confirmed',
+                'Booking confirmed',
+                'Your training place has been reserved.',
+                [
+                    'booking_id'=>$id,
+                    'session_id'=>$sessionId,
+                    'date'=>$session['session_date'],
+                    'start_time'=>substr((string)$session['start_time'],0,5),
+                    'end_time'=>!empty($session['end_time']) ? substr((string)$session['end_time'],0,5) : null,
+                ]
+            );
             $this->activity->log($actorUserId,'booking.create','booking',$id,['session_id'=>$sessionId,'user_id'=>$targetUserId,'admin_override'=>$adminOverride]);
             return $id;
         });
@@ -215,7 +227,19 @@ final class BookingService
                 throw ApiException::notFound('Session not found.');
             }
             $this->bookings->cancel((int)$booking['id'],$actorUserId,$now->format('Y-m-d H:i:s'));
-            $this->notifications->create((int)$booking['user_id'],'booking_cancelled','Booking cancelled','Your training booking was cancelled.',['booking_id'=>(int)$booking['id'],'session_id'=>(int)$booking['session_id']]);
+            $this->notifications->create(
+                (int)$booking['user_id'],
+                'booking_cancelled',
+                'Booking cancelled',
+                'Your training booking was cancelled.',
+                [
+                    'booking_id'=>(int)$booking['id'],
+                    'session_id'=>(int)$booking['session_id'],
+                    'date'=>$booking['session_date'],
+                    'start_time'=>substr((string)$booking['start_time'],0,5),
+                    'end_time'=>!empty($booking['end_time']) ? substr((string)$booking['end_time'],0,5) : null,
+                ]
+            );
             $this->activity->log($actorUserId,'booking.cancel','booking',(int)$booking['id'],['user_id'=>(int)$booking['user_id'],'session_id'=>(int)$booking['session_id']]);
             if($this->settingBool('waitlist_enabled',true)&&$this->settingBool('auto_promote_waitlist',true))$this->promoteNextWaitlisted((int)$booking['session_id'],$actorUserId);
         });
@@ -233,7 +257,19 @@ final class BookingService
             if($existing&&in_array($existing['status'],['booked','checked_in'],true)){$this->waitlist->markPromoted((int)$entry['id'],(int)$existing['id']);continue;}
             $bookingId=$this->bookings->upsertBooked($sessionId,(int)$entry['user_id'],$actorUserId);
             $this->waitlist->markPromoted((int)$entry['id'],$bookingId);
-            $this->notifications->create((int)$entry['user_id'],'waitlist_promoted','A place became available','You were automatically moved from the waiting list into the session.',['booking_id'=>$bookingId,'session_id'=>$sessionId]);
+            $this->notifications->create(
+                (int)$entry['user_id'],
+                'waitlist_promoted',
+                'A place became available',
+                'You were automatically moved from the waiting list into the session.',
+                [
+                    'booking_id'=>$bookingId,
+                    'session_id'=>$sessionId,
+                    'date'=>$session['session_date'],
+                    'start_time'=>substr((string)$session['start_time'],0,5),
+                    'end_time'=>!empty($session['end_time']) ? substr((string)$session['end_time'],0,5) : null,
+                ]
+            );
             $this->activity->log($actorUserId,'waitlist.promote','booking',$bookingId,['waitlist_id'=>(int)$entry['id'],'user_id'=>(int)$entry['user_id']]);
             return;
         }

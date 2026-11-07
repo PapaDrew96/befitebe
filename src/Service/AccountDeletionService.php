@@ -164,7 +164,13 @@ final class AccountDeletionService
                 'waitlist_promoted',
                 'A place became available',
                 'You were automatically moved from the waiting list into the session.',
-                ['booking_id' => $bookingId, 'session_id' => $sessionId]
+                [
+                    'booking_id' => $bookingId,
+                    'session_id' => $sessionId,
+                    'date' => $session['session_date'],
+                    'start_time' => substr((string)$session['start_time'], 0, 5),
+                    'end_time' => !empty($session['end_time']) ? substr((string)$session['end_time'], 0, 5) : null,
+                ]
             );
             $this->activity->log(
                 null,

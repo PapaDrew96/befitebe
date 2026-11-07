@@ -108,7 +108,7 @@ final class BookingRepository
 
     public function activeBookingsForDate(string $date): array
     {
-        $stmt = $this->pdo->prepare("SELECT b.id AS booking_id, b.user_id, b.session_id, s.start_time
+        $stmt = $this->pdo->prepare("SELECT b.id AS booking_id, b.user_id, b.session_id, s.start_time, s.end_time
             FROM bookings b
             INNER JOIN gym_sessions s ON s.id=b.session_id
             WHERE s.session_date=:session_date AND b.status IN ('booked','checked_in')

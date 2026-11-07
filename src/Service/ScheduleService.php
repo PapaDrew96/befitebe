@@ -515,6 +515,7 @@ final class ScheduleService
                     if ($becameUnavailable || $dateOrTimeChanged) {
                         $sessionDate = $data['session_date'] ?? $existing['session_date'];
                         $startTime = $data['start_time'] ?? $existing['start_time'];
+                        $endTime = array_key_exists('end_time', $data) ? $data['end_time'] : $existing['end_time'];
                         $label = substr((string)$startTime, 0, 5);
                         $status = $data['status'] ?? $existing['status'];
                         $title = $becameUnavailable
@@ -530,7 +531,14 @@ final class ScheduleService
                                 'session_changed',
                                 $title,
                                 $body,
-                                ['booking_id'=>(int)$booking['booking_id'],'session_id'=>$id,'date'=>$sessionDate,'status'=>$status]
+                                [
+                                    'booking_id'=>(int)$booking['booking_id'],
+                                    'session_id'=>$id,
+                                    'date'=>$sessionDate,
+                                    'start_time'=>substr((string)$startTime,0,5),
+                                    'end_time'=>!empty($endTime) ? substr((string)$endTime,0,5) : null,
+                                    'status'=>$status,
+                                ]
                             );
                             if ($status === 'cancelled') {
                                 $this->bookings->cancel(
@@ -549,7 +557,12 @@ final class ScheduleService
                                     'waitlist_released',
                                     'Waiting list closed',
                                     'The session you were waiting for on ' . $sessionDate . ' at ' . $label . ' was cancelled.',
-                                    ['session_id'=>$id,'date'=>$sessionDate]
+                                    [
+                                        'session_id'=>$id,
+                                        'date'=>$sessionDate,
+                                        'start_time'=>substr((string)$startTime,0,5),
+                                        'end_time'=>!empty($endTime) ? substr((string)$endTime,0,5) : null,
+                                    ]
                                 );
                             }
                         }
@@ -631,7 +644,14 @@ final class ScheduleService
                             'gym_closed',
                             'Gym closed on ' . $input['date'],
                             $reason . ' Your reservation has been cancelled.',
-                            ['booking_id'=>(int)$booking['booking_id'],'session_id'=>(int)$booking['session_id'],'date'=>$input['date']]
+                            [
+                                'booking_id'=>(int)$booking['booking_id'],
+                                'session_id'=>(int)$booking['session_id'],
+                                'date'=>$input['date'],
+                                'start_time'=>substr((string)$booking['start_time'],0,5),
+                                'end_time'=>!empty($booking['end_time']) ? substr((string)$booking['end_time'],0,5) : null,
+                                'reason'=>$reason,
+                            ]
                         );
                         $this->bookings->cancel((int)$booking['booking_id'], $actorUserId, $cancelledAt);
                     }
@@ -642,7 +662,13 @@ final class ScheduleService
                             'waitlist_released',
                             'Waiting list closed',
                             'The gym is closed on ' . $input['date'] . '. Your waiting-list entry was released.',
-                            ['session_id'=>(int)$entry['session_id'],'date'=>$input['date']]
+                            [
+                                'session_id'=>(int)$entry['session_id'],
+                                'date'=>$input['date'],
+                                'start_time'=>!empty($entry['start_time']) ? substr((string)$entry['start_time'],0,5) : null,
+                                'end_time'=>!empty($entry['end_time']) ? substr((string)$entry['end_time'],0,5) : null,
+                                'reason'=>$reason,
+                            ]
                         );
                     }
 

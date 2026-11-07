@@ -13,6 +13,7 @@ final class PushNotificationService
     public function __construct(
         private readonly PushDeviceRepository $devices,
         private readonly FcmService $fcm,
+        private readonly NotificationContentService $content,
         private readonly LoggerInterface $logger
     ) {}
 
@@ -49,11 +50,23 @@ final class PushNotificationService
             $summary['attempted']++;
 
             try {
-                $result = $this->fcm->send(
-                    (string)$device['token'],
+                $type = (string)($data['type'] ?? '');
+                $language = (string)($device['language'] ?? 'el');
+                $message = $this->content->format(
+                    $type,
                     $title,
                     $body,
-                    $data
+                    $data,
+                    $language
+                );
+                $pushData = $data;
+                $pushData['route'] = $message['route'];
+
+                $result = $this->fcm->send(
+                    (string)$device['token'],
+                    $message['title'],
+                    $message['body'],
+                    $pushData
                 );
 
                 if ($result['sent']) {

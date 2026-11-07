@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Befit\Service\FcmService;
 use Befit\Service\NotificationDispatcher;
+use Befit\Service\NotificationContentService;
 use Befit\Service\PushNotificationService;
 use Befit\Controller\AdminAnnouncementController;
 use Befit\Controller\AdminBookingController;
@@ -123,9 +124,12 @@ $fcmService = new FcmService(
     $logger
 );
 
+$notificationContentService = new NotificationContentService();
+
 $pushNotificationService = new PushNotificationService(
     $pushDeviceRepository,
     $fcmService,
+    $notificationContentService,
     $logger
 );
 

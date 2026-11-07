@@ -108,7 +108,11 @@ final class WaitlistRepository
     {
         if ($sessionIds === []) return [];
         $placeholders = implode(',', array_fill(0, count($sessionIds), '?'));
-        $stmt = $this->pdo->prepare("SELECT id,session_id,user_id,status,joined_at FROM waitlist_entries WHERE status='waiting' AND session_id IN ({$placeholders}) ORDER BY joined_at");
+        $stmt = $this->pdo->prepare("SELECT w.id,w.session_id,w.user_id,w.status,w.joined_at,s.session_date,s.start_time,s.end_time
+            FROM waitlist_entries w
+            INNER JOIN gym_sessions s ON s.id=w.session_id
+            WHERE w.status='waiting' AND w.session_id IN ({$placeholders})
+            ORDER BY w.joined_at");
         foreach (array_values($sessionIds) as $i => $id) $stmt->bindValue($i + 1, (int)$id, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll();

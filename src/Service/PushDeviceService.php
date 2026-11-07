@@ -15,6 +15,7 @@ final class PushDeviceService
     {
         $token = trim((string)($input['token'] ?? ''));
         $platform = strtolower(trim((string)($input['platform'] ?? '')));
+        $language = strtolower(trim((string)($input['language'] ?? 'el')));
 
         $errors = [];
 
@@ -28,15 +29,20 @@ final class PushDeviceService
             $errors['platform'][] = 'Platform must be android or ios.';
         }
 
+        if (!in_array($language, ['el', 'en'], true)) {
+            $errors['language'][] = 'Language must be el or en.';
+        }
+
         if ($errors !== []) {
             throw ApiException::validation($errors);
         }
 
-        $this->devices->upsert($userId, $token, $platform);
+        $this->devices->upsert($userId, $token, $platform, $language);
 
         return [
             'registered' => true,
             'platform' => $platform,
+            'language' => $language,
         ];
     }
 

@@ -7,7 +7,6 @@ namespace Befit\Service;
 use Befit\Database\Database;
 use Befit\Exception\ApiException;
 use Befit\Repository\ActivityLogRepository;
-use Befit\Repository\NotificationRepository;
 use Befit\Repository\PaymentRepository;
 use Befit\Repository\UserRepository;
 use Befit\Support\InputValidator;
@@ -22,7 +21,7 @@ final class PaymentService
         private readonly Database $database,
         private readonly PaymentRepository $payments,
         private readonly UserRepository $users,
-        private readonly NotificationRepository $notifications,
+        private readonly NotificationDispatcher $notifications,
         private readonly ActivityLogRepository $activity,
         string $timezone
     ) {

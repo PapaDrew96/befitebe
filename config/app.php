@@ -79,6 +79,11 @@ return [
         'from' => (string) $env('MAIL_FROM', 'no-reply@befit.local'),
         'from_name' => (string) $env('MAIL_FROM_NAME', 'BE-FIT Training Center'),
     ],
+    'push' => [
+        'enabled' => $bool($env('PUSH_ENABLED', false)),
+        'firebase_project_id' => trim((string)$env('FIREBASE_PROJECT_ID', '')),
+        'firebase_credentials_path' => trim((string)$env('FIREBASE_CREDENTIALS_PATH', '')),
+    ],
     'schedule' => [
         'max_days_ahead' => max(7, (int) $env('SCHEDULE_MAX_DAYS_AHEAD', 120)),
     ],

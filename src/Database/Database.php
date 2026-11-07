@@ -10,6 +10,7 @@ use Throwable;
 final class Database
 {
     private PDO $pdo;
+    private array $afterCommitCallbacks = [];
 
     public function __construct(array $config)
     {
@@ -34,18 +35,45 @@ final class Database
         return $this->pdo;
     }
 
+    public function inTransaction(): bool
+    {
+        return $this->pdo->inTransaction();
+    }
+
+    public function afterCommit(callable $callback): void
+    {
+        if (!$this->pdo->inTransaction()) {
+            $callback();
+            return;
+        }
+
+        $this->afterCommitCallbacks[] = $callback;
+    }
+
     public function transaction(callable $callback): mixed
     {
+        $this->afterCommitCallbacks = [];
         $this->pdo->beginTransaction();
 
         try {
             $result = $callback($this->pdo);
             $this->pdo->commit();
+
+            $callbacks = $this->afterCommitCallbacks;
+            $this->afterCommitCallbacks = [];
+
+            foreach ($callbacks as $afterCommit) {
+                $afterCommit();
+            }
+
             return $result;
         } catch (Throwable $exception) {
+            $this->afterCommitCallbacks = [];
+
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
+
             throw $exception;
         }
     }

@@ -8,7 +8,6 @@ use Befit\Database\Database;
 use Befit\Exception\ApiException;
 use Befit\Repository\ActivityLogRepository;
 use Befit\Repository\BookingRepository;
-use Befit\Repository\NotificationRepository;
 use Befit\Repository\PasswordResetRepository;
 use Befit\Repository\PaymentRepository;
 use Befit\Repository\ScheduleRepository;
@@ -35,7 +34,7 @@ final class AccountDeletionService
         private readonly ScheduleRepository $schedule,
         private readonly SettingRepository $settings,
         private readonly WaitlistRepository $waitlist,
-        private readonly NotificationRepository $notifications,
+        private readonly NotificationDispatcher $notifications,
         private readonly PushDeviceRepository $pushDevices,
         private readonly PaymentRepository $payments,
         private readonly ActivityLogRepository $activity,

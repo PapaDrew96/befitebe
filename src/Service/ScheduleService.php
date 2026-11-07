@@ -8,7 +8,6 @@ use Befit\Database\Database;
 use Befit\Exception\ApiException;
 use Befit\Repository\ActivityLogRepository;
 use Befit\Repository\BookingRepository;
-use Befit\Repository\NotificationRepository;
 use Befit\Repository\ScheduleRepository;
 use Befit\Repository\SettingRepository;
 use Befit\Repository\WaitlistRepository;
@@ -27,7 +26,7 @@ final class ScheduleService
         private readonly BookingRepository $bookings,
         private readonly SettingRepository $settings,
         private readonly WaitlistRepository $waitlist,
-        private readonly NotificationRepository $notifications,
+        private readonly NotificationDispatcher $notifications,
         private readonly ActivityLogRepository $activity,
         private readonly int $maxDaysAhead,
         string $timezone

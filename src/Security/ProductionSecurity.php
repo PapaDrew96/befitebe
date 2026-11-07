@@ -69,6 +69,42 @@ final class ProductionSecurity
             }
         }
 
+        if (!empty($config['push']['enabled'])) {
+            $projectId = trim((string) ($config['push']['firebase_project_id'] ?? ''));
+            $credentialsPath = trim((string) ($config['push']['firebase_credentials_path'] ?? ''));
+
+            if ($projectId === '') {
+                $errors[] = 'FIREBASE_PROJECT_ID is required when push notifications are enabled.';
+            }
+
+            if ($credentialsPath === '') {
+                $errors[] = 'FIREBASE_CREDENTIALS_PATH is required when push notifications are enabled.';
+            } elseif (!str_starts_with($credentialsPath, DIRECTORY_SEPARATOR)) {
+                $errors[] = 'FIREBASE_CREDENTIALS_PATH must be an absolute path in production.';
+            } elseif (!is_file($credentialsPath) || !is_readable($credentialsPath)) {
+                $errors[] = 'FIREBASE_CREDENTIALS_PATH must point to a readable service-account JSON file.';
+            } else {
+                $appRoot = realpath(dirname(__DIR__, 2));
+                $credentialsRealPath = realpath($credentialsPath);
+
+                if (
+                    $appRoot !== false
+                    && $credentialsRealPath !== false
+                    && str_starts_with($credentialsRealPath, $appRoot . DIRECTORY_SEPARATOR)
+                ) {
+                    $errors[] = 'Firebase credentials must be stored outside the application root.';
+                }
+            }
+
+            if (!function_exists('curl_init')) {
+                $errors[] = 'PHP cURL extension is required when push notifications are enabled.';
+            }
+
+            if (!function_exists('openssl_sign')) {
+                $errors[] = 'PHP OpenSSL extension is required when push notifications are enabled.';
+            }
+        }
+
         if ($errors !== []) {
             throw new RuntimeException("Unsafe production configuration:\n- " . implode("\n- ", $errors));
         }

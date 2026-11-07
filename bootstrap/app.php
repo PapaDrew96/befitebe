@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use Befit\Service\FcmService;
+use Befit\Service\NotificationDispatcher;
+use Befit\Service\PushNotificationService;
 use Befit\Controller\AdminAnnouncementController;
 use Befit\Controller\AdminBookingController;
 use Befit\Controller\AdminDashboardController;
@@ -113,6 +116,24 @@ $passwordResetRepository = new PasswordResetRepository($pdo);
 $pushDeviceRepository = new PushDeviceRepository($pdo);
 $reportRepository = new ReportRepository($pdo);
 $paymentRepository = new PaymentRepository($pdo);
+$fcmService = new FcmService(
+    $config['push']['enabled'],
+    $config['push']['firebase_credentials_path'],
+    $config['push']['firebase_project_id'],
+    $logger
+);
+
+$pushNotificationService = new PushNotificationService(
+    $pushDeviceRepository,
+    $fcmService,
+    $logger
+);
+
+$notificationDispatcher = new NotificationDispatcher(
+    $database,
+    $notificationRepository,
+    $pushNotificationService
+);
 
 $passwordHasher = new PasswordHasher(
     $config['auth']['argon_memory_kb'],
@@ -149,7 +170,7 @@ $accountDeletionService = new AccountDeletionService(
     $scheduleRepository,
     $settingRepository,
     $waitlistRepository,
-    $notificationRepository,
+    $notificationDispatcher,
     $pushDeviceRepository,
     $paymentRepository,
     $activityRepository,
@@ -162,7 +183,7 @@ $scheduleService = new ScheduleService(
     $bookingRepository,
     $settingRepository,
     $waitlistRepository,
-    $notificationRepository,
+    $notificationDispatcher,
     $activityRepository,
     $config['schedule']['max_days_ahead'],
     $config['app']['timezone']
@@ -174,7 +195,7 @@ $bookingService = new BookingService(
     $userRepository,
     $settingRepository,
     $waitlistRepository,
-    $notificationRepository,
+    $notificationDispatcher,
     $activityRepository,
     $config['app']['timezone']
 );
@@ -225,7 +246,7 @@ $paymentService = new PaymentService(
     $database,
     $paymentRepository,
     $userRepository,
-    $notificationRepository,
+    $notificationDispatcher,
     $activityRepository,
     $config['app']['timezone']
 );
